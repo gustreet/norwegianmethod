@@ -64,7 +64,7 @@ components:
 
 ## Overview
 
-Product UI for post-track review: **navy app shell**, venue tabs, toolbar (LTHR, map mode, TCX upload). Main grid = **OSM map** (pace or HR polyline) + **verdict panel** with Copeland/Bakken **fit bars**. Below: core metrics strip, effort-vs-speed chart, **sticky navy rep table**. Tailwind v4 `@theme` tokens (`navy`, `red`, `ink`, `muted`, `line`, `surface`). Geist Sans + Mono. Cool slate page bg `#F1F5F9` (not warm cream).
+Product UI for post-track review: **navy app shell** (red hairline under header), venue tabs, toolbar (LTHR, map mode, TCX upload). Main grid = **OSM map** (pace or HR polyline) + **SessionSummary** (verdict badge, headline, dual **FitBar**, six core metrics, collapsible rule flags). Below: effort-vs-speed chart, **sticky rep table** (slate thead). Tailwind v4 `@theme` tokens (`navy`, `red`, `ink`, `muted`, `line`, `surface`). Geist Sans + Mono. Cool slate page bg `#F1F5F9` (not warm cream). Surfaces use border + spacing; avoid stacked shadows and nested cards.
 
 ## Colors
 
@@ -95,10 +95,10 @@ Light `shadow-sm` on map and panels only; flat data table inside bordered shell.
 ## Components
 
 - **AppShell + AppNav**: navy header, stripe gradient, active nav pill.
-- **Track workspace**: venue tabs (`role="tablist"`); map overlay toggle; verdict card + dual **FitBar** progress.
-- **CoreMetricsPanel**: 6-cell metric grid + fit bars in header row.
+- **Track workspace**: venue tabs (`role="tablist"`, active = navy fill); map overlay toggle; **SessionSummary** beside map on large screens.
+- **SessionSummary**: verdict pill + headline; Copeland/Bakken **FitBar**; 6-metric `dl`; `<details>` for rule flags (flat divided list).
 - **EffortSpeedChart**: dual bar overlay per rep, rep index labels ≤24 reps.
-- **Rep table**: `sticky` `bg-navy` thead, zebra rows, red row tint when max HR ≥ LTHR.
+- **Rep table**: `sticky` slate thead, finish row tint, red row when max HR ≥ LTHR on controlled reps.
 - **FitBar**: 8px track, navy or red fill, `role="progressbar"`.
 
 ## Do's and Don'ts

@@ -24,11 +24,13 @@
 }
 
 body {
-  background:
-    linear-gradient(180deg, oklch(0.96 0.012 265) 0%, var(--bg) 14rem),
-    var(--bg);
+  background: var(--bg);
   color: var(--ink);
   font-family: var(--font-geist-sans), system-ui, sans-serif;
+}
+
+:root {
+  --z-sticky: 10;
 }
 
 @media (prefers-reduced-motion: no-preference) {

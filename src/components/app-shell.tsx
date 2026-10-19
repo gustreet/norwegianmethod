@@ -20,7 +20,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </Link>
           <AppNav />
         </div>
-        <div className="h-1 bg-gradient-to-r from-[var(--red)] via-white to-[var(--navy)]" />
+        <div className="h-0.5 bg-[var(--red)]" aria-hidden />
       </header>
       <main className="flex-1">{children}</main>
       <footer className="border-t border-[var(--line)] py-6 text-center text-xs text-[var(--muted)]">

@@ -6,16 +6,10 @@ import { formatDuration, formatPace } from "@/lib/format";
 import { detectTrack, trackCentroid } from "@/lib/geo";
 import { TRACKS, TRACK_SAMPLE_TCX, trackBySlug } from "@/lib/track-config";
 import { parseTcx } from "@/lib/tcx";
-import type {
-  HomeTrack,
-  Lap,
-  SessionAnalysis,
-  TrackPoint,
-} from "@/lib/types";
-import { CoreMetricsPanel } from "./core-metrics-panel";
+import type { HomeTrack, Lap, SessionAnalysis, TrackPoint } from "@/lib/types";
 import { EffortSpeedChart } from "./effort-speed-chart";
+import { SessionSummary } from "./session-summary";
 import { TrackMapLazy } from "./track-map-lazy";
-import { VerdictBand } from "./verdict-band";
 
 type SlotState = {
   laps: Lap[];
@@ -40,7 +34,6 @@ export function TrackWorkspace() {
   const [error, setError] = useState<string | null>(null);
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
   const [mapOverlay, setMapOverlay] = useState<"pace" | "hr">("pace");
-  const [flagsOpen, setFlagsOpen] = useState(false);
 
   const activeTrack = trackBySlug(activeSlug) ?? TRACKS[0];
   const slot = slots[activeSlug] ?? emptySlot();
@@ -141,30 +134,31 @@ export function TrackWorkspace() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 py-6 sm:px-6 sm:py-10">
-      <header className="flex flex-col gap-5 border-b border-line pb-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+    <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-6 sm:px-6 sm:py-8">
+      <header className="flex flex-col gap-4">
+        <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-balance text-ink sm:text-4xl">
+            <h1 className="text-2xl font-semibold tracking-tight text-ink sm:text-3xl">
               {activeTrack.name}
             </h1>
-            <p className="mt-1 text-base text-muted">{activeTrack.city}</p>
+            <p className="text-sm text-muted">{activeTrack.city}</p>
           </div>
-          <div className="flex flex-wrap gap-2" role="tablist" aria-label="Track venue">
+          <div
+            className="inline-flex rounded-lg border border-line bg-surface p-1"
+            role="tablist"
+            aria-label="Track venue"
+          >
             {TRACKS.map((t) => (
               <button
                 key={t.slug}
                 type="button"
                 role="tab"
                 aria-selected={t.slug === activeSlug}
-                onClick={() => {
-                  setActiveSlug(t.slug);
-                  setFlagsOpen(false);
-                }}
-                className={`rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors ${
+                onClick={() => setActiveSlug(t.slug)}
+                className={`rounded-md px-4 py-2 text-sm font-medium transition-colors ${
                   t.slug === activeSlug
-                    ? "bg-navy text-white shadow-md"
-                    : "bg-surface text-navy ring-2 ring-line hover:ring-navy/25"
+                    ? "bg-navy text-white"
+                    : "text-muted hover:text-ink"
                 }`}
               >
                 {t.name}
@@ -173,35 +167,37 @@ export function TrackWorkspace() {
           </div>
         </div>
 
-        <div className="flex flex-wrap items-end gap-3">
-          <label className="text-sm font-medium text-ink">
-            LTHR (bpm)
+        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-line bg-surface p-3">
+          <label className="flex items-center gap-2 text-sm text-muted">
+            LTHR
             <input
               type="number"
               min={120}
               max={210}
               value={lthr}
               onChange={(e) => setLthr(Number(e.target.value) || 172)}
-              className="mt-1 block w-24 rounded-lg border border-line bg-surface px-3 py-2 font-mono text-sm shadow-sm"
+              className="w-20 rounded-lg border border-line bg-surface px-2.5 py-1.5 font-mono text-sm text-ink"
             />
           </label>
-          <div className="flex flex-wrap gap-2">
+          <span className="hidden h-6 w-px bg-line sm:block" aria-hidden />
+          <div className="flex gap-1">
             {(["pace", "hr"] as const).map((mode) => (
               <button
                 key={mode}
                 type="button"
                 onClick={() => setMapOverlay(mode)}
-                className={`rounded-lg px-3 py-2 text-xs font-medium ${
+                className={`rounded-lg px-3 py-1.5 text-xs font-medium ${
                   mapOverlay === mode
                     ? "bg-navy text-white"
-                    : "bg-surface text-navy ring-1 ring-line"
+                    : "text-navy hover:bg-slate-50"
                 }`}
               >
-                Map · {mode === "pace" ? "speed" : "HR"}
+                {mode === "pace" ? "Speed map" : "HR map"}
               </button>
             ))}
           </div>
-          <label className="cursor-pointer rounded-lg bg-navy px-5 py-2.5 text-sm font-semibold text-white shadow-md hover:opacity-95">
+          <span className="hidden h-6 w-px bg-line sm:block" aria-hidden />
+          <label className="cursor-pointer rounded-lg bg-navy px-4 py-2 text-sm font-medium text-white hover:opacity-95">
             Upload TCX
             <input
               type="file"
@@ -217,133 +213,80 @@ export function TrackWorkspace() {
             type="button"
             onClick={saveSession}
             disabled={!hasSession}
-            className="rounded-lg border border-navy bg-surface px-4 py-2 text-sm font-medium text-navy hover:bg-navy/5 disabled:opacity-40"
+            className="rounded-lg px-4 py-2 text-sm font-medium text-navy hover:bg-slate-50 disabled:opacity-40"
           >
-            Save to Neon
+            Save
           </button>
         </div>
+
         {error ? (
           <p className="text-sm text-red" role="alert">{error}</p>
         ) : null}
         {saveMsg ? <p className="text-sm text-navy">{saveMsg}</p> : null}
       </header>
 
-      {hasSession ? (
-        <VerdictBand
-          analysis={analysis}
-          flagsOpen={flagsOpen}
-          onToggleFlags={() => setFlagsOpen((o) => !o)}
-        />
-      ) : null}
-
-      <div className="grid gap-8 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,0.65fr)] lg:items-start">
-        <div className="flex flex-col gap-3">
-          <div className="relative -mx-4 min-h-[340px] overflow-hidden rounded-none border-y-2 border-navy/20 bg-navy sm:mx-0 sm:min-h-[420px] sm:rounded-2xl sm:border-2 sm:ring-4 sm:ring-navy/10">
-            <TrackMapLazy
-              points={slot.trackpoints}
-              center={mapCenter}
-              highlight={mapOverlay}
-              lthr={lthr}
-            />
-          </div>
-          <p className="text-xs leading-relaxed text-muted">
-            {slot.trackpoints.length === 0
-              ? "No TCX for this tab yet."
-              : detected?.slug === activeSlug
-                ? "One TCX per tab · GPS matches this oval."
-                : detected
-                  ? `GPS centroid is closer to ${detected.name} than ${activeTrack.name}.`
-                  : "GPS loaded · not matched to a saved oval."}
+      {!hasSession ? (
+        <div className="rounded-2xl border border-dashed border-line bg-surface px-6 py-16 text-center">
+          <p className="text-lg font-medium text-ink">Upload a TCX for this oval</p>
+          <p className="mx-auto mt-2 max-w-md text-sm text-pretty text-muted">
+            Sha Tin and Kai Tak stay separate — one file per tab, map and reps always
+            matched.
           </p>
         </div>
-
-        <aside className="flex flex-col gap-4 lg:sticky lg:top-6">
-          {!hasSession ? (
-            <div className="rounded-2xl border-2 border-dashed border-navy/25 bg-surface p-8 text-center text-sm text-muted">
-              <p className="text-base font-semibold text-ink">No session yet</p>
-              <p className="mt-2 text-pretty">
-                Upload a TCX for <strong>{activeTrack.name}</strong>. Sha Tin and Kai Tak stay
-                separate.
+      ) : (
+        <>
+          <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
+            <div className="flex min-h-[300px] flex-col gap-2 sm:min-h-[360px]">
+              <div className="flex-1 overflow-hidden rounded-xl border border-line bg-surface">
+                <TrackMapLazy
+                  points={slot.trackpoints}
+                  center={mapCenter}
+                  highlight={mapOverlay}
+                  lthr={lthr}
+                />
+              </div>
+              <p className="text-xs text-muted">
+                {detected?.slug === activeSlug
+                  ? "GPS matches this oval."
+                  : detected
+                    ? `GPS closer to ${detected.name}.`
+                    : "GPS loaded."}
               </p>
             </div>
-          ) : (
-            <div className="rounded-2xl border border-line bg-surface p-5 shadow-sm">
-              <h2 className="text-sm font-bold text-ink">Session</h2>
-              <dl className="mt-4 space-y-3 font-mono text-sm">
-                <div className="flex justify-between gap-4 border-b border-line pb-3">
-                  <dt className="text-muted">Decoupling</dt>
-                  <dd className="font-bold tabular-nums text-ink">
-                    {analysis.core.decouplingIndex.toFixed(1)}%
-                  </dd>
-                </div>
-                <div className="flex justify-between gap-4 border-b border-line pb-3">
-                  <dt className="text-muted">Pace drift</dt>
-                  <dd className="font-bold tabular-nums text-ink">
-                    {analysis.paceDriftPct >= 0 ? "+" : ""}
-                    {analysis.paceDriftPct.toFixed(1)}%
-                  </dd>
-                </div>
-                <div className="flex justify-between gap-4 border-b border-line pb-3">
-                  <dt className="text-muted">Sub-LTHR reps</dt>
-                  <dd className="font-bold tabular-nums text-ink">
-                    {(analysis.progress.subThresholdShare * 100).toFixed(0)}%
-                  </dd>
-                </div>
-                <div className="flex justify-between gap-4 border-b border-line pb-3">
-                  <dt className="text-muted">LTHR ceiling</dt>
-                  <dd className="font-bold tabular-nums text-red">{lthr} bpm</dd>
-                </div>
-                {analysis.core.finish.present ? (
-                  <div className="flex justify-between gap-4">
-                    <dt className="text-muted">Finish effort</dt>
-                    <dd className="font-bold tabular-nums text-ink">
-                      {analysis.core.finish.avgHrPctOfPeak.toFixed(0)}% peak
-                      <span className="ml-1 text-xs font-normal text-muted">
-                        (90–95)
-                      </span>
-                    </dd>
-                  </div>
-                ) : null}
-              </dl>
-            </div>
-          )}
-        </aside>
-      </div>
+            <SessionSummary analysis={analysis} lthr={lthr} />
+          </div>
 
-      {hasSession ? (
-        <div className="flex flex-col gap-6">
-          <CoreMetricsPanel analysis={analysis} />
           <EffortSpeedChart core={analysis.core} />
           <RepTable analysis={analysis} lthr={lthr} />
-        </div>
-      ) : null}
+        </>
+      )}
     </div>
   );
 }
 
 function RepTable({ analysis, lthr }: { analysis: SessionAnalysis; lthr: number }) {
   return (
-    <section className="rounded-2xl border border-line bg-surface shadow-sm">
-      <div className="border-b border-line bg-slate-50 px-4 py-4 sm:px-5">
-        <h2 className="text-lg font-bold text-ink">Work reps</h2>
+    <section className="overflow-hidden rounded-xl border border-line bg-surface">
+      <div className="border-b border-line px-4 py-3 sm:px-5">
+        <h2 className="font-semibold text-ink">Work reps</h2>
         <p className="text-xs text-muted">
-          Controlled reps: LTHR crossings count. Last rep = modeled 90–95% HR finish.
+          Red rows = max HR ≥ LTHR on controlled reps. Finish rep excluded from LTHR rules.
         </p>
       </div>
-      <div className="max-h-[min(70vh,520px)] overflow-auto">
+      <div className="max-h-[min(65vh,480px)] overflow-auto">
         <table className="min-w-full border-collapse text-left text-sm">
-          <thead className="sticky top-0 z-10 bg-navy text-white shadow-sm">
+          <thead className="sticky top-0 z-[var(--z-sticky,10)] border-b border-line bg-slate-100 text-ink">
             <tr>
-              <th scope="col" className="px-4 py-3 font-medium">Rep</th>
-              <th scope="col" className="px-4 py-3 font-medium">Time</th>
-              <th scope="col" className="px-4 py-3 font-medium">Pace /km</th>
-              <th scope="col" className="px-4 py-3 font-medium">Avg HR</th>
-              <th scope="col" className="px-4 py-3 font-medium">Max HR</th>
-              <th scope="col" className="px-4 py-3 font-medium">Decouple</th>
+              <th scope="col" className="px-4 py-2.5 font-medium">Rep</th>
+              <th scope="col" className="px-4 py-2.5 font-medium">Time</th>
+              <th scope="col" className="px-4 py-2.5 font-medium">Pace</th>
+              <th scope="col" className="px-4 py-2.5 font-medium">Avg HR</th>
+              <th scope="col" className="px-4 py-2.5 font-medium">Max HR</th>
+              <th scope="col" className="px-4 py-2.5 font-medium">Decouple</th>
             </tr>
           </thead>
           <tbody>
-            {analysis.workReps.map((rep, row) => {
+            {analysis.workReps.map((rep) => {
               const rm = analysis.core.repMetrics.find((m) => m.index === rep.index);
               const isFinish = rm?.role === "finish";
               const hot = !isFinish && rep.maxHr >= lthr;
@@ -351,30 +294,24 @@ function RepTable({ analysis, lthr }: { analysis: SessionAnalysis; lthr: number 
                 <tr
                   key={rep.lapNumber}
                   className={`border-t border-line ${
-                    isFinish
-                      ? "bg-navy/6"
-                      : hot
-                        ? "bg-red/8"
-                        : row % 2 === 0
-                          ? "bg-white"
-                          : "bg-slate-50/80"
+                    hot ? "bg-red/5" : isFinish ? "bg-slate-50" : ""
                   }`}
                 >
-                  <td className="px-4 py-2.5 font-mono text-ink">
+                  <td className="px-4 py-2 font-mono text-ink">
                     {rep.index}
                     {isFinish ? (
-                      <span className="ml-2 rounded bg-navy/10 px-1.5 py-0.5 text-[10px] font-sans font-semibold text-navy">
-                        Finish
+                      <span className="ml-1.5 text-[10px] font-sans font-medium text-muted">
+                        finish
                       </span>
                     ) : null}
                   </td>
-                  <td className="px-4 py-2.5 font-mono">{formatDuration(rep.seconds)}</td>
-                  <td className="px-4 py-2.5 font-mono">{formatPace(rep.paceMinPerKm)}</td>
-                  <td className="px-4 py-2.5 font-mono">{rep.avgHr}</td>
-                  <td className={`px-4 py-2.5 font-mono ${hot ? "font-semibold text-red" : ""}`}>
+                  <td className="px-4 py-2 font-mono">{formatDuration(rep.seconds)}</td>
+                  <td className="px-4 py-2 font-mono">{formatPace(rep.paceMinPerKm)}</td>
+                  <td className="px-4 py-2 font-mono">{rep.avgHr}</td>
+                  <td className={`px-4 py-2 font-mono ${hot ? "font-semibold text-red" : ""}`}>
                     {rep.maxHr}
                   </td>
-                  <td className="px-4 py-2.5 font-mono text-muted">
+                  <td className="px-4 py-2 font-mono text-muted">
                     {rm
                       ? `${rm.decouplingRep >= 0 ? "+" : ""}${rm.decouplingRep.toFixed(1)}%`
                       : "—"}

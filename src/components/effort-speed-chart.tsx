@@ -16,7 +16,7 @@ export function EffortSpeedChart({ core }: { core: SessionCoreMetrics }) {
   const padY = 20;
   const labelH = 16;
   const w = Math.max(320, reps.length * 28 + padX * 2);
-  const h = 200;
+  const h = 180;
   const innerW = w - padX * 2;
   const innerH = h - padY - labelH;
 
@@ -34,16 +34,16 @@ export function EffortSpeedChart({ core }: { core: SessionCoreMetrics }) {
 
   return (
     <section
-      className="rounded-2xl border-2 border-navy/15 bg-surface p-4 sm:p-5"
+      className="rounded-xl border border-line bg-surface p-4 sm:p-5"
       aria-labelledby="effort-speed-heading"
     >
-      <h2 id="effort-speed-heading" className="text-lg font-bold text-ink">
+      <h2 id="effort-speed-heading" className="font-semibold text-ink">
         Effort vs speed
       </h2>
-      <p className="mt-1 text-sm text-muted">
+      <p className="mt-1 text-xs text-muted">
         Navy = relative speed · red = relative HR · dashed = outside Bakken split band
       </p>
-      <div className="mt-4 overflow-x-auto rounded-xl border border-line bg-white">
+      <div className="mt-4 overflow-x-auto">
         <svg
           viewBox={`0 0 ${w} ${h}`}
           className="w-full min-w-[min(100%,320px)]"
@@ -64,7 +64,8 @@ export function EffortSpeedChart({ core }: { core: SessionCoreMetrics }) {
             const barW = slotW * 0.76;
             const sh = normSpeed(r.paceMinKm) * innerH * 0.42;
             const eh = normHr(r.avgHr) * innerH * 0.42;
-            const showLabel = reps.length <= 24 && i % (reps.length > 16 ? 2 : 1) === 0;
+            const showLabel =
+              reps.length <= 24 && i % (reps.length > 16 ? 2 : 1) === 0;
             return (
               <g key={r.lapNumber}>
                 <rect
@@ -73,7 +74,7 @@ export function EffortSpeedChart({ core }: { core: SessionCoreMetrics }) {
                   width={barW / 2 - 1}
                   height={Math.max(2, sh)}
                   fill="#00205b"
-                  opacity={0.9}
+                  opacity={0.88}
                   rx={2}
                 />
                 <rect
@@ -82,7 +83,7 @@ export function EffortSpeedChart({ core }: { core: SessionCoreMetrics }) {
                   width={barW / 2 - 1}
                   height={Math.max(2, eh)}
                   fill="#ba0c2f"
-                  opacity={0.8}
+                  opacity={0.78}
                   rx={2}
                 />
                 {r.paceMiss ? (
@@ -114,16 +115,6 @@ export function EffortSpeedChart({ core }: { core: SessionCoreMetrics }) {
             );
           })}
         </svg>
-      </div>
-      <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-xs text-muted">
-        <span className="inline-flex items-center gap-2">
-          <span className="h-2.5 w-2.5 rounded-sm bg-navy" />
-          Speed
-        </span>
-        <span className="inline-flex items-center gap-2">
-          <span className="h-2.5 w-2.5 rounded-sm bg-red" />
-          Effort (avg HR)
-        </span>
       </div>
     </section>
   );
