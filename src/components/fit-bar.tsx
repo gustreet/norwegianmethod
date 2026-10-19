@@ -31,28 +31,27 @@ export function FitBar({
 
   return (
     <div className="w-full min-w-[140px]">
-      <div className="mb-1.5 flex items-baseline justify-between gap-2">
-        <span className={`text-xs font-semibold ${labelClass}`}>{label}</span>
+      <p className={`mb-1.5 text-xs font-semibold ${labelClass}`}>{label}</p>
+      <div className="flex items-center gap-2">
+        <div
+          className={`min-w-0 flex-1 ${h} overflow-hidden rounded-full ${track}`}
+          role="progressbar"
+          aria-valuenow={v}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-label={`${label} ${v} out of 100`}
+        >
+          <div
+            className={`fit-bar-fill h-full rounded-full ${fill}`}
+            style={{ width: `${v}%` }}
+          />
+        </div>
         <span
-          className={`font-mono font-bold tabular-nums ${valueClass} ${
-            size === "lg" ? "text-lg" : "text-sm"
-          }`}
+          className={`shrink-0 font-mono text-sm font-semibold tabular-nums ${valueClass}`}
         >
           {v}
+          <span className="font-normal text-muted">/100</span>
         </span>
-      </div>
-      <div
-        className={`${h} overflow-hidden rounded-full ${track}`}
-        role="progressbar"
-        aria-valuenow={v}
-        aria-valuemin={0}
-        aria-valuemax={100}
-        aria-label={`${label} ${v}`}
-      >
-        <div
-          className={`fit-bar-fill h-full rounded-full ${fill}`}
-          style={{ width: `${v}%` }}
-        />
       </div>
     </div>
   );

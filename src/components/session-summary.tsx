@@ -37,12 +37,19 @@ export function SessionSummary({ analysis, lthr }: Props) {
     >
       <header>
         <p className="text-sm text-muted">{formatDate(analysis.startedAt)}</p>
-        <div className="mt-2 flex flex-wrap items-center gap-2">
-          <span className={`rounded-full px-3 py-1 text-sm font-semibold ${ui.badge}`}>
+        <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
+          <span className={`w-fit rounded-full px-3 py-1 text-sm font-semibold ${ui.badge}`}>
             {ui.label}
           </span>
-          <span className="font-mono text-xs text-muted">
-            {analysis.workReps.length} reps · {analysis.qualityMinutes.toFixed(0)} min
+          <span className="text-sm text-muted">
+            <span className="font-mono tabular-nums text-ink">
+              {analysis.workReps.length}
+            </span>{" "}
+            reps ·{" "}
+            <span className="font-mono tabular-nums text-ink">
+              {analysis.qualityMinutes.toFixed(0)}
+            </span>{" "}
+            min quality
           </span>
         </div>
         <h2
@@ -61,7 +68,7 @@ export function SessionSummary({ analysis, lthr }: Props) {
         <FitBar label="Bakken fit" value={progress.bakkenFit} tone="red" />
       </div>
 
-      <dl className="grid grid-cols-2 gap-x-4 gap-y-3 border-t border-line pt-4 text-sm sm:grid-cols-3">
+      <dl className="grid grid-cols-2 gap-x-5 gap-y-4 border-t border-line pt-5 sm:grid-cols-3">
         <Metric label="Decoupling" value={`${core.decouplingIndex.toFixed(1)}%`} />
         <Metric label="Pace drift" value={`${analysis.paceDriftPct >= 0 ? "+" : ""}${analysis.paceDriftPct.toFixed(1)}%`} />
         <Metric label="Sub-LTHR" value={`${(progress.subThresholdShare * 100).toFixed(0)}%`} />
@@ -84,11 +91,17 @@ export function SessionSummary({ analysis, lthr }: Props) {
       </p>
 
       {analysis.flags.length > 0 ? (
-        <details className="rounded-xl border border-line">
-          <summary className="cursor-pointer px-4 py-3 text-sm font-medium text-ink">
-            Rule flags
-            <span className="ml-2 font-mono text-xs font-normal text-muted">
-              ({analysis.flags.length})
+        <details className="group rounded-xl border border-line">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-sm font-medium text-ink marker:content-none [&::-webkit-details-marker]:hidden">
+            <span>Rule flags</span>
+            <span className="flex items-center gap-2 font-mono text-xs font-normal text-muted">
+              {analysis.flags.length}
+              <span
+                className="text-ink transition-transform group-open:rotate-90"
+                aria-hidden
+              >
+                ▸
+              </span>
             </span>
           </summary>
           <ul className="divide-y divide-line border-t border-line px-4 text-sm leading-snug text-ink">
@@ -115,8 +128,8 @@ function Metric({
 }) {
   return (
     <div>
-      <dt className="text-xs text-muted">{label}</dt>
-      <dd className="font-mono text-base font-semibold tabular-nums text-ink">
+      <dt className="text-xs font-medium text-muted">{label}</dt>
+      <dd className="mt-0.5 font-mono text-sm font-semibold tabular-nums text-ink">
         {value}
       </dd>
       {hint ? <p className="text-[11px] text-muted">{hint}</p> : null}

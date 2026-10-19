@@ -14,9 +14,9 @@ export function EffortSpeedChart({ core }: { core: SessionCoreMetrics }) {
   const maxH = Math.max(...hrs);
   const padX = 12;
   const padY = 20;
-  const labelH = 16;
+  const labelH = 22;
   const w = Math.max(320, reps.length * 28 + padX * 2);
-  const h = 180;
+  const h = 196;
   const innerW = w - padX * 2;
   const innerH = h - padY - labelH;
 
@@ -40,10 +40,13 @@ export function EffortSpeedChart({ core }: { core: SessionCoreMetrics }) {
       <h2 id="effort-speed-heading" className="font-semibold text-ink">
         Effort vs speed
       </h2>
-      <p className="mt-1 text-xs text-muted">
-        Navy = relative speed · red = relative HR · dashed = outside Bakken split band
+      <p className="mt-2 text-sm leading-snug text-ink/80">
+        <span className="inline-block size-2.5 rounded-sm bg-navy align-middle" aria-hidden />{" "}
+        Speed ·{" "}
+        <span className="inline-block size-2.5 rounded-sm bg-red align-middle" aria-hidden />{" "}
+        HR · dashed outline = outside Bakken split band
       </p>
-      <div className="mt-4 overflow-x-auto">
+      <div className="mt-4 overflow-x-auto pb-1">
         <svg
           viewBox={`0 0 ${w} ${h}`}
           className="w-full min-w-[min(100%,320px)]"
