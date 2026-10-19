@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { desc } from "drizzle-orm";
 import { getDb, dbConfigured } from "@/lib/db";
 import { sessions, tracks } from "@/lib/db/schema";
-import { HOME_TRACK } from "@/lib/track-config";
+import { TRACKS, trackBySlug } from "@/lib/track-config";
 
 export async function GET() {
   if (!dbConfigured()) {
@@ -42,7 +42,7 @@ export async function POST(req: Request) {
 
   const body = await req.json();
   const {
-    trackSlug = HOME_TRACK.slug,
+    trackSlug,
     startedAt,
     lthr,
     verdict,
@@ -56,21 +56,28 @@ export async function POST(req: Request) {
     route,
   } = body;
 
-  if (!laps || !analysis || !route || !verdict) {
+  if (!trackSlug || !laps || !analysis || !route || !verdict) {
     return NextResponse.json({ error: "Missing session payload" }, { status: 400 });
   }
 
-  await db
-    .insert(tracks)
-    .values({
-      slug: HOME_TRACK.slug,
-      name: HOME_TRACK.name,
-      city: HOME_TRACK.city,
-      centerLat: HOME_TRACK.lat,
-      centerLng: HOME_TRACK.lng,
-      lapMeters: HOME_TRACK.lapMeters,
-    })
-    .onConflictDoNothing({ target: tracks.slug });
+  const track = trackBySlug(trackSlug);
+  if (!track) {
+    return NextResponse.json({ error: "Unknown track" }, { status: 400 });
+  }
+
+  for (const t of TRACKS) {
+    await db
+      .insert(tracks)
+      .values({
+        slug: t.slug,
+        name: t.name,
+        city: t.city,
+        centerLat: t.lat,
+        centerLng: t.lng,
+        lapMeters: t.lapMeters,
+      })
+      .onConflictDoNothing({ target: tracks.slug });
+  }
 
   const [row] = await db
     .insert(sessions)

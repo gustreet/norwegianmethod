@@ -20,7 +20,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </span>
             <div>
               <p className="text-sm font-semibold tracking-wide">Singles Track</p>
-              <p className="text-xs text-white/70">Norwegian method · your 400 m oval</p>
+              <p className="text-xs text-white/70">Sha Tin & Kai Tak · separate sessions</p>
             </div>
           </Link>
           <nav className="flex gap-1 sm:gap-2" aria-label="Main">

@@ -3,9 +3,11 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { formatDate, formatPace } from "@/lib/format";
+import { trackBySlug } from "@/lib/track-config";
 
 type Row = {
   id: number;
+  trackSlug: string;
   startedAt: string | null;
   verdict: string;
   qualityMinutes: number;
@@ -59,7 +61,8 @@ export default function SessionsPage() {
             >
               <div>
                 <p className="font-medium text-[var(--ink)]">
-                  Session #{s.id} · {s.workRepCount} reps
+                  {trackBySlug(s.trackSlug)?.name ?? s.trackSlug} · #{s.id} ·{" "}
+                  {s.workRepCount} reps
                 </p>
                 <p className="text-sm text-[var(--muted)]">
                   {formatDate(s.startedAt)} · {s.qualityMinutes.toFixed(0)} quality min

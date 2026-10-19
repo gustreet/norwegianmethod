@@ -1,14 +1,33 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { analyzeSession } from "@/lib/analyze";
 import { formatDate, formatDuration, formatPace } from "@/lib/format";
-import { nearTrack } from "@/lib/geo";
-import { sampleLaps, sampleStartedAt } from "@/lib/sample-laps";
-import { HOME_TRACK } from "@/lib/track-config";
+import { detectTrack, trackCentroid } from "@/lib/geo";
+import { TRACKS, TRACK_SAMPLE_TCX, trackBySlug } from "@/lib/track-config";
 import { parseTcx } from "@/lib/tcx";
-import type { Lap, SessionAnalysis, SessionVerdict, TrackPoint } from "@/lib/types";
+import type {
+  HomeTrack,
+  Lap,
+  SessionAnalysis,
+  SessionVerdict,
+  TrackPoint,
+} from "@/lib/types";
 import { TrackMapLazy } from "./track-map-lazy";
+
+type SlotState = {
+  laps: Lap[];
+  trackpoints: TrackPoint[];
+  startedAt: string | null;
+  loaded: boolean;
+};
+
+const emptySlot = (): SlotState => ({
+  laps: [],
+  trackpoints: [],
+  startedAt: null,
+  loaded: false,
+});
 
 const verdictStyles: Record<
   SessionVerdict,
@@ -32,47 +51,79 @@ const verdictStyles: Record<
 };
 
 export function TrackWorkspace() {
-  const [laps, setLaps] = useState<Lap[]>(sampleLaps);
-  const [trackpoints, setTrackpoints] = useState<TrackPoint[]>([]);
-  const [startedAt, setStartedAt] = useState<string | null>(sampleStartedAt);
+  const [activeSlug, setActiveSlug] = useState(TRACKS[0].slug);
+  const [slots, setSlots] = useState<Record<string, SlotState>>(() =>
+    Object.fromEntries(TRACKS.map((t) => [t.slug, emptySlot()])),
+  );
   const [lthr, setLthr] = useState(172);
   const [error, setError] = useState<string | null>(null);
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
 
+  const activeTrack = trackBySlug(activeSlug) ?? TRACKS[0];
+  const slot = slots[activeSlug] ?? emptySlot();
+
   const analysis: SessionAnalysis = useMemo(
-    () => analyzeSession(laps, startedAt, lthr),
-    [laps, startedAt, lthr],
+    () => analyzeSession(slot.laps, slot.startedAt, lthr),
+    [slot.laps, slot.startedAt, lthr],
   );
 
-  const onHomeTrack = useMemo(
-    () => nearTrack(trackpoints, HOME_TRACK),
-    [trackpoints],
+  const detected = useMemo(
+    () => detectTrack(slot.trackpoints),
+    [slot.trackpoints],
+  );
+
+  const mapCenter = useMemo(
+    () => trackCentroid(slot.trackpoints) ?? activeTrack,
+    [slot.trackpoints, activeTrack],
   );
 
   const style = verdictStyles[analysis.verdict];
 
-  useEffect(() => {
-    if (trackpoints.length > 0) return;
-    fetch("/demo.tcx")
-      .then((r) => (r.ok ? r.text() : null))
-      .then((xml) => {
-        if (!xml) return;
-        const parsed = parseTcx(xml);
-        setTrackpoints(parsed.trackpoints);
-      })
-      .catch(() => undefined);
-  }, [trackpoints.length]);
+  const setSlot = useCallback((slug: string, next: Partial<SlotState>) => {
+    setSlots((prev) => ({
+      ...prev,
+      [slug]: { ...emptySlot(), ...prev[slug], ...next, loaded: true },
+    }));
+  }, []);
 
-  async function onFile(file: File) {
+  useEffect(() => {
+    for (const track of TRACKS) {
+      const url = TRACK_SAMPLE_TCX[track.slug];
+      if (!url) continue;
+      fetch(url)
+        .then((r) => (r.ok ? r.text() : Promise.reject()))
+        .then((xml) => {
+          const parsed = parseTcx(xml);
+          setSlot(track.slug, {
+            laps: parsed.laps,
+            trackpoints: parsed.trackpoints,
+            startedAt: parsed.startedAt,
+          });
+        })
+        .catch(() => undefined);
+    }
+  }, [setSlot]);
+
+  async function onFile(file: File, forTrack: HomeTrack) {
     setError(null);
     setSaveMsg(null);
     try {
       const text = await file.text();
       const parsed = parseTcx(text);
       if (parsed.laps.length === 0) throw new Error("No laps in file.");
-      setLaps(parsed.laps);
-      setTrackpoints(parsed.trackpoints);
-      setStartedAt(parsed.startedAt);
+      const match = detectTrack(parsed.trackpoints);
+      if (match && match.slug !== forTrack.slug) {
+        setError(
+          `GPS matches ${match.name}, not ${forTrack.name}. Switch tabs or upload the right file.`,
+        );
+        return;
+      }
+      setSlot(forTrack.slug, {
+        laps: parsed.laps,
+        trackpoints: parsed.trackpoints,
+        startedAt: parsed.startedAt,
+      });
+      setActiveSlug(forTrack.slug);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not read TCX.");
     }
@@ -80,11 +131,12 @@ export function TrackWorkspace() {
 
   async function saveSession() {
     setSaveMsg(null);
+    if (slot.laps.length === 0) return;
     const res = await fetch("/api/sessions", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        trackSlug: HOME_TRACK.slug,
+        trackSlug: activeSlug,
         startedAt: analysis.startedAt,
         lthr,
         verdict: analysis.verdict,
@@ -93,9 +145,9 @@ export function TrackWorkspace() {
         avgWorkPaceMinKm: analysis.avgWorkPace,
         paceDriftPct: analysis.paceDriftPct,
         avgWorkHr: analysis.avgWorkHr,
-        laps,
+        laps: slot.laps,
         analysis,
-        route: trackpoints,
+        route: slot.trackpoints,
       }),
     });
     const data = await res.json();
@@ -103,32 +155,51 @@ export function TrackWorkspace() {
       setSaveMsg(data.error ?? "Could not save to Neon.");
       return;
     }
-    setSaveMsg(`Saved session #${data.id} on Neon.`);
+    setSaveMsg(`Saved ${activeTrack.name} session #${data.id} on Neon.`);
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 py-8 sm:px-6">
+    <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-8 sm:px-6">
+      <div className="flex flex-wrap gap-2 border-b border-[var(--line)] pb-4">
+        {TRACKS.map((t) => (
+          <button
+            key={t.slug}
+            type="button"
+            onClick={() => setActiveSlug(t.slug)}
+            className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+              t.slug === activeSlug
+                ? "bg-[var(--navy)] text-white"
+                : "bg-white text-[var(--navy)] ring-1 ring-[var(--line)] hover:bg-[var(--surface)]"
+            }`}
+          >
+            {t.name}
+            {slots[t.slug]?.loaded && slots[t.slug].laps.length > 0 ? (
+              <span className="ml-2 opacity-70">· loaded</span>
+            ) : null}
+          </button>
+        ))}
+      </div>
+
       <section className="grid gap-6 lg:grid-cols-2">
         <div className="flex flex-col gap-3">
           <div>
             <p className="text-sm font-medium text-[var(--red)]">Your oval</p>
             <h1 className="text-2xl font-semibold text-[var(--ink)] sm:text-3xl">
-              {HOME_TRACK.name}
+              {activeTrack.name}
             </h1>
-            <p className="mt-1 text-sm text-[var(--muted)]">{HOME_TRACK.city}</p>
+            <p className="mt-1 text-sm text-[var(--muted)]">{activeTrack.city}</p>
           </div>
           <div className="min-h-[360px] flex-1 overflow-hidden rounded-2xl border border-[var(--line)] shadow-sm">
-            <TrackMapLazy points={trackpoints} />
+            <TrackMapLazy points={slot.trackpoints} center={mapCenter} />
           </div>
           <p className="text-xs text-[var(--muted)]">
-            {trackpoints.length > 0
-              ? onHomeTrack
-                ? "GPS centroid matches your home track — good file for this app."
-                : "GPS looks off-home; map still shows the route from TCX."
-              : "OpenStreetMap centered on your track. Upload TCX for the lap trace."}
-            {" "}
-            <span className="text-[var(--navy)]">Blue</span> = controlled pace ·{" "}
-            <span className="text-[var(--red)]">Red</span> = hot splits.
+            {slot.trackpoints.length === 0
+              ? "No TCX for this tab yet."
+              : detected?.slug === activeSlug
+                ? "Map and reps are one TCX · GPS matches this tab."
+                : detected
+                  ? `This tab is ${activeTrack.name}, but GPS centroid is closer to ${detected.name}.`
+                  : "Map and reps share one file · GPS not near a saved oval."}
           </p>
         </div>
 
@@ -154,14 +225,15 @@ export function TrackWorkspace() {
                   className="hidden"
                   onChange={(e) => {
                     const f = e.target.files?.[0];
-                    if (f) onFile(f);
+                    if (f) onFile(f, activeTrack);
                   }}
                 />
               </label>
               <button
                 type="button"
                 onClick={saveSession}
-                className="rounded-lg border border-[var(--navy)] px-4 py-2.5 text-sm font-medium text-[var(--navy)] hover:bg-[var(--navy)]/5"
+                disabled={slot.laps.length === 0}
+                className="rounded-lg border border-[var(--navy)] px-4 py-2.5 text-sm font-medium text-[var(--navy)] hover:bg-[var(--navy)]/5 disabled:opacity-40"
               >
                 Save to Neon
               </button>
@@ -170,33 +242,39 @@ export function TrackWorkspace() {
           {error ? <p className="text-sm text-[var(--red)]" role="alert">{error}</p> : null}
           {saveMsg ? <p className="text-sm text-[var(--navy)]">{saveMsg}</p> : null}
 
-          <article
-            className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-5"
-            style={{ boxShadow: `inset 0 0 0 1px ${style.ring}22` }}
-          >
-            <p className="text-sm text-[var(--muted)]">{formatDate(analysis.startedAt)}</p>
-            <div className="mt-2 flex flex-wrap gap-2">
-              <span className={`rounded-full px-3 py-1 text-sm font-medium ${style.badge}`}>
-                {style.label}
-              </span>
-              <span className="font-mono text-sm text-[var(--muted)]">
-                {analysis.workReps.length} reps · {analysis.qualityMinutes.toFixed(0)} quality min
-              </span>
-            </div>
-            <h2 className="mt-3 text-xl font-semibold">{analysis.verdictHeadline}</h2>
-            <p className="mt-2 text-sm leading-relaxed text-[var(--muted)]">
-              {analysis.verdictDetail}
+          {slot.laps.length === 0 ? (
+            <p className="rounded-xl border border-[var(--line)] bg-white p-6 text-sm text-[var(--muted)]">
+              Upload a TCX for {activeTrack.name} only. Sha Tin and Kai Tak stay separate.
             </p>
-            {analysis.bakkenNote ? (
-              <p className="mt-4 rounded-lg border-l-4 border-[var(--red)] bg-white/80 py-2 pl-3 text-sm text-[var(--ink)]">
-                {analysis.bakkenNote}
+          ) : (
+            <article
+              className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-5"
+              style={{ boxShadow: `inset 0 0 0 1px ${style.ring}22` }}
+            >
+              <p className="text-sm text-[var(--muted)]">{formatDate(analysis.startedAt)}</p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                <span className={`rounded-full px-3 py-1 text-sm font-medium ${style.badge}`}>
+                  {style.label}
+                </span>
+                <span className="font-mono text-sm text-[var(--muted)]">
+                  {analysis.workReps.length} reps · {analysis.qualityMinutes.toFixed(0)} quality min
+                </span>
+              </div>
+              <h2 className="mt-3 text-xl font-semibold">{analysis.verdictHeadline}</h2>
+              <p className="mt-2 text-sm leading-relaxed text-[var(--muted)]">
+                {analysis.verdictDetail}
               </p>
-            ) : null}
-          </article>
+              {analysis.bakkenNote ? (
+                <p className="mt-4 rounded-lg border-l-4 border-[var(--red)] bg-white/80 py-2 pl-3 text-sm text-[var(--ink)]">
+                  {analysis.bakkenNote}
+                </p>
+              ) : null}
+            </article>
+          )}
         </div>
       </section>
 
-      <RepTable analysis={analysis} lthr={lthr} />
+      {slot.laps.length > 0 ? <RepTable analysis={analysis} lthr={lthr} /> : null}
     </div>
   );
 }
@@ -204,7 +282,7 @@ export function TrackWorkspace() {
 function RepTable({ analysis, lthr }: { analysis: SessionAnalysis; lthr: number }) {
   return (
     <section>
-      <h3 className="text-lg font-semibold text-[var(--ink)]">Work reps on your track</h3>
+      <h3 className="text-lg font-semibold text-[var(--ink)]">Work reps</h3>
       <div className="mt-4 overflow-x-auto rounded-2xl border border-[var(--line)]">
         <table className="min-w-full text-left text-sm">
           <thead className="bg-[var(--navy)] text-white">

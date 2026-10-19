@@ -1,4 +1,5 @@
-import type { TrackPoint } from "./types";
+import type { HomeTrack, TrackPoint } from "./types";
+import { TRACKS } from "./track-config";
 
 export function trackCentroid(points: TrackPoint[]): { lat: number; lng: number } | null {
   if (points.length === 0) return null;
@@ -25,7 +26,7 @@ export function distanceMeters(
   return 2 * R * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x));
 }
 
-/** True if activity GPS is near the home oval (within ~600 m). */
+/** True if activity GPS is near a known oval (within ~600 m). */
 export function nearTrack(
   points: TrackPoint[],
   center: { lat: number; lng: number },
@@ -34,4 +35,20 @@ export function nearTrack(
   const c = trackCentroid(points);
   if (!c) return false;
   return distanceMeters(c, center) <= radiusM;
+}
+
+/** Pick the closest configured track to this activity GPS. */
+export function detectTrack(points: TrackPoint[], radiusM = 800): HomeTrack | null {
+  const c = trackCentroid(points);
+  if (!c) return null;
+  let best: HomeTrack | null = null;
+  let bestD = Infinity;
+  for (const t of TRACKS) {
+    const d = distanceMeters(c, { lat: t.lat, lng: t.lng });
+    if (d < bestD) {
+      bestD = d;
+      best = t;
+    }
+  }
+  return bestD <= radiusM ? best : null;
 }

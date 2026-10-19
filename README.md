@@ -1,22 +1,34 @@
-# Norwegian Singles Review
+# Singles Track
 
-A small Next.js app that reads a **Garmin TCX** export and judges a track session against **Norwegian Singles** (James Copeland): sub-threshold effort, LTHR guardrail, pace drift, and recovery heat—not Garmin’s VO2max label or execution score.
+A **track-first** Next.js app for your 400 m oval: **OpenStreetMap** GPS from Garmin TCX, **Norwegian Singles** (Copeland) scoring, and **Marius Bakken** notes on controlled 400s. Session summaries persist on **Neon** Postgres.
 
 ## Run locally
 
 ```bash
 npm install
+cp .env.example .env.local   # optional: Neon DATABASE_URL (pooled)
+npm run db:push              # when DATABASE_URL is set
 npm run dev -- --port 4317
 ```
 
-Open [http://127.0.0.1:4317](http://127.0.0.1:4317). The sample session is your uploaded `activity_24729105034.tcx`. Use **Upload TCX** for another file.
+Open [http://127.0.0.1:4317](http://127.0.0.1:4317).
 
-Set **LTHR** to your lactate-threshold heart rate (field test: avg HR in the last 20 minutes of a 30-minute solo time trial).
+- **Track** — OSM map of your loop (demo loads `public/demo.tcx`), upload TCX, rep table, save to Neon.
+- **Sessions** — history from Neon.
+- **Method** — short Copeland + Bakken copy tied to your home track.
 
-## What it does better than Garmin Connect
+## Neon
 
-- Verdict: on-method / borderline / too hard for a Norwegian Single
-- Rep table with pace fade and reps that crossed LTHR
-- Explicit contrast with Garmin’s “VO2 Max” primary benefit on the same workout
+1. Create a project at [neon.tech](https://neon.tech).
+2. Copy the **pooled** connection string into `.env.local` as `DATABASE_URL`.
+3. Run `npm run db:push`.
 
-TCX is parsed in the browser; nothing is uploaded to a server.
+Without Neon, the app still parses TCX and draws the map in the browser; **Save to Neon** will explain that the database is missing.
+
+## Your track
+
+Default map center matches your exported TCX (Sha Tin area). Upload any session from that oval; the app checks whether GPS centroid is near home.
+
+## Stack
+
+Next.js 16, Tailwind 4, Leaflet + OpenStreetMap tiles, Drizzle ORM, `@neondatabase/serverless`.
