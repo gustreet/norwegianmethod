@@ -1,0 +1,61 @@
+import type { Lap } from "./types";
+
+const TCX = "http://www.garmin.com/xmlschemas/TrainingCenterDatabase/v2";
+const TPX = "http://www.garmin.com/xmlschemas/ActivityExtension/v2";
+
+function childText(parent: Element, ns: string, local: string): string {
+  const el = parent.getElementsByTagNameNS(ns, local)[0];
+  return el?.textContent?.trim() ?? "";
+}
+
+export function parseTcx(xml: string): { startedAt: string | null; laps: Lap[] } {
+  const doc = new DOMParser().parseFromString(xml, "application/xml");
+  const activity = doc.getElementsByTagNameNS(TCX, "Activity")[0];
+  if (!activity) {
+    throw new Error("No Activity found in this TCX file.");
+  }
+
+  const startedAt = childText(activity, TCX, "Id") || null;
+  const lapEls = activity.getElementsByTagNameNS(TCX, "Lap");
+  const laps: Lap[] = [];
+
+  for (let i = 0; i < lapEls.length; i++) {
+    const lap = lapEls[i];
+    const tpx = lap.getElementsByTagNameNS(TPX, "TPX")[0];
+    let cadence: number | null = null;
+    let watts: number | null = null;
+    if (tpx) {
+      const cadRaw = childText(tpx, TPX, "AvgRunCadence");
+      const wattsRaw = childText(tpx, TPX, "AvgWatts");
+      if (cadRaw) cadence = Math.round(parseFloat(cadRaw) * 2);
+      if (wattsRaw) watts = Math.round(parseFloat(wattsRaw));
+    }
+
+    const hrEls = lap.getElementsByTagNameNS(TCX, "HeartRateBpm");
+    let endHr: number | null = null;
+    if (hrEls.length > 0) {
+      const v = childText(hrEls[hrEls.length - 1], TCX, "Value");
+      endHr = v ? parseInt(v, 10) : null;
+    }
+
+    const avgHrEl = lap.getElementsByTagNameNS(TCX, "AverageHeartRateBpm")[0];
+    const maxHrEl = lap.getElementsByTagNameNS(TCX, "MaximumHeartRateBpm")[0];
+
+    laps.push({
+      n: i + 1,
+      seconds: parseFloat(childText(lap, TCX, "TotalTimeSeconds") || "0"),
+      meters: parseFloat(childText(lap, TCX, "DistanceMeters") || "0"),
+      avgHr: avgHrEl
+        ? parseInt(childText(avgHrEl, TCX, "Value") || "0", 10)
+        : 0,
+      maxHr: maxHrEl
+        ? parseInt(childText(maxHrEl, TCX, "Value") || "0", 10)
+        : 0,
+      endHr,
+      cadence,
+      watts,
+    });
+  }
+
+  return { startedAt, laps };
+}

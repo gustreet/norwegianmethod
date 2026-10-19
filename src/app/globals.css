@@ -1,0 +1,23 @@
+@import "tailwindcss";
+
+:root {
+  --bg: oklch(1 0 0);
+  --surface: oklch(0.97 0.004 270);
+  --ink: oklch(0.22 0.02 270);
+  --muted: oklch(0.48 0.02 270);
+  --primary: oklch(0.45 0.18 270);
+  --line: oklch(0.9 0.01 270);
+}
+
+@theme inline {
+  --color-background: var(--bg);
+  --color-foreground: var(--ink);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+}
