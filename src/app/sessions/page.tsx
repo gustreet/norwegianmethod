@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { formatDate, formatPace } from "@/lib/format";
 import { trackBySlug } from "@/lib/track-config";
+import { NEON_CONNECT_DOCS, NEON_CONSOLE, NEON_HOME } from "@/lib/neon-links";
 
 type Row = {
   id: number;
@@ -34,15 +35,55 @@ export default function SessionsPage() {
     <div className="mx-auto max-w-4xl px-4 py-10 sm:px-6">
       <h1 className="text-2xl font-semibold text-[var(--navy)]">Track sessions</h1>
       <p className="mt-2 text-sm text-[var(--muted)]">
-        Stored in Neon when <code className="font-mono text-xs">DATABASE_URL</code> is set.
+        Stored in{" "}
+        <a
+          href={NEON_CONSOLE}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-[var(--navy)] underline underline-offset-2"
+        >
+          Neon Postgres
+        </a>{" "}
+        when <code className="font-mono text-xs">DATABASE_URL</code> is set.
       </p>
 
       {!db && !loading ? (
-        <p className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
-          Neon is not connected. Add your pooled connection string to{" "}
-          <code className="font-mono">.env.local</code>, run{" "}
-          <code className="font-mono">npm run db:push</code>, then save from the Track page.
-        </p>
+        <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
+          <p>
+            Neon is not connected. Create a project on{" "}
+            <a
+              href={NEON_HOME}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium text-[var(--navy)] underline underline-offset-2"
+            >
+              neon.tech
+            </a>
+            , copy the <strong>pooled</strong> connection string into{" "}
+            <code className="font-mono">.env.local</code> as{" "}
+            <code className="font-mono">DATABASE_URL</code>, then run{" "}
+            <code className="font-mono">npm run db:push</code>.
+          </p>
+          <p className="mt-3">
+            <a
+              href={NEON_CONNECT_DOCS}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[var(--navy)] underline underline-offset-2"
+            >
+              Neon connection docs
+            </a>
+            {" · "}
+            <a
+              href={NEON_CONSOLE}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[var(--navy)] underline underline-offset-2"
+            >
+              Open Neon console
+            </a>
+          </p>
+        </div>
       ) : null}
 
       {loading ? (

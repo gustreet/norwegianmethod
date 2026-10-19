@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { AppNav } from "./app-nav";
+import { NEON_CONSOLE } from "@/lib/neon-links";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   return (
@@ -24,7 +25,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </header>
       <main className="flex-1">{children}</main>
       <footer className="border-t border-[var(--line)] py-6 text-center text-xs text-[var(--muted)]">
-        Map data © OpenStreetMap contributors · TCX stays yours · Neon stores session summaries
+        Map data © OpenStreetMap contributors · TCX stays on your device · Sessions on{" "}
+        <a
+          href={NEON_CONSOLE}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-[var(--navy)] underline underline-offset-2 hover:opacity-90"
+        >
+          Neon
+        </a>
       </footer>
     </div>
   );

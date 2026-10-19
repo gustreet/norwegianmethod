@@ -1,6 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { NEON_CONSOLE } from "@/lib/neon-links";
 import { analyzeSession } from "@/lib/analyze";
 import { formatDuration, formatPace } from "@/lib/format";
 import { detectTrack, trackCentroid } from "@/lib/geo";
@@ -127,10 +129,15 @@ export function TrackWorkspace() {
     });
     const data = await res.json();
     if (!res.ok) {
-      setSaveMsg(data.error ?? "Could not save to Neon.");
+      const err = data.error ?? "Could not save to Neon.";
+      setSaveMsg(
+        err.includes("DATABASE_URL")
+          ? `${err} Set up Neon on the Sessions page or console.`
+          : err,
+      );
       return;
     }
-    setSaveMsg(`Saved ${activeTrack.name} session #${data.id} on Neon.`);
+    setSaveMsg(`saved:${data.id}`);
   }
 
   return (
@@ -222,7 +229,47 @@ export function TrackWorkspace() {
         {error ? (
           <p className="text-sm text-red" role="alert">{error}</p>
         ) : null}
-        {saveMsg ? <p className="text-sm text-navy">{saveMsg}</p> : null}
+        {saveMsg ? (
+          <p className="text-sm text-navy">
+            {saveMsg.startsWith("saved:") ? (
+              <>
+                Saved {activeTrack.name} session #{saveMsg.slice(6)} on{" "}
+                <a
+                  href={NEON_CONSOLE}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline underline-offset-2"
+                >
+                  Neon
+                </a>
+                .{" "}
+                <Link href="/sessions" className="underline underline-offset-2">
+                  View sessions
+                </Link>
+              </>
+            ) : (
+              <>
+                {saveMsg}{" "}
+                {saveMsg.includes("DATABASE_URL") || saveMsg.includes("Neon") ? (
+                  <>
+                    <Link href="/sessions" className="underline underline-offset-2">
+                      Sessions setup
+                    </Link>
+                    {" · "}
+                    <a
+                      href={NEON_CONSOLE}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="underline underline-offset-2"
+                    >
+                      Neon console
+                    </a>
+                  </>
+                ) : null}
+              </>
+            )}
+          </p>
+        ) : null}
       </header>
 
       {!hasSession ? (
