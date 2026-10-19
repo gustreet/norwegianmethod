@@ -34,10 +34,10 @@ export function EffortSpeedChart({ core }: { core: SessionCoreMetrics }) {
 
   return (
     <section
-      className="rounded-2xl border border-line bg-surface p-4 sm:p-5"
+      className="rounded-2xl border-2 border-navy/15 bg-surface p-4 sm:p-5"
       aria-labelledby="effort-speed-heading"
     >
-      <h2 id="effort-speed-heading" className="text-base font-semibold text-ink">
+      <h2 id="effort-speed-heading" className="text-lg font-bold text-ink">
         Effort vs speed
       </h2>
       <p className="mt-1 text-sm text-muted">

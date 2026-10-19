@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { analyzeSession } from "@/lib/analyze";
-import { formatDate, formatDuration, formatPace } from "@/lib/format";
+import { formatDuration, formatPace } from "@/lib/format";
 import { detectTrack, trackCentroid } from "@/lib/geo";
 import { TRACKS, TRACK_SAMPLE_TCX, trackBySlug } from "@/lib/track-config";
 import { parseTcx } from "@/lib/tcx";
@@ -10,13 +10,12 @@ import type {
   HomeTrack,
   Lap,
   SessionAnalysis,
-  SessionVerdict,
   TrackPoint,
 } from "@/lib/types";
 import { CoreMetricsPanel } from "./core-metrics-panel";
 import { EffortSpeedChart } from "./effort-speed-chart";
-import { FitBar } from "./fit-bar";
 import { TrackMapLazy } from "./track-map-lazy";
+import { VerdictBand } from "./verdict-band";
 
 type SlotState = {
   laps: Lap[];
@@ -31,27 +30,6 @@ const emptySlot = (): SlotState => ({
   startedAt: null,
   loaded: false,
 });
-
-const verdictStyles: Record<
-  SessionVerdict,
-  { accent: string; badge: string; label: string }
-> = {
-  "on-method": {
-    accent: "border-navy/30 bg-navy/5",
-    badge: "bg-navy/12 text-navy",
-    label: "On method",
-  },
-  borderline: {
-    accent: "border-amber-400/50 bg-amber-50",
-    badge: "bg-amber-100 text-amber-950",
-    label: "Borderline",
-  },
-  "too-hard": {
-    accent: "border-red/35 bg-red/5",
-    badge: "bg-red/12 text-red",
-    label: "Too hard",
-  },
-};
 
 export function TrackWorkspace() {
   const [activeSlug, setActiveSlug] = useState(TRACKS[0].slug);
@@ -82,9 +60,6 @@ export function TrackWorkspace() {
     () => trackCentroid(slot.trackpoints) ?? activeTrack,
     [slot.trackpoints, activeTrack],
   );
-
-  const style = verdictStyles[analysis.verdict];
-  const visibleFlags = flagsOpen ? analysis.flags : analysis.flags.slice(0, 3);
 
   const setSlot = useCallback((slug: string, next: Partial<SlotState>) => {
     setSlots((prev) => ({
@@ -166,17 +141,14 @@ export function TrackWorkspace() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-6 sm:px-6 sm:py-8">
-      <header className="flex flex-col gap-4 border-b border-line pb-5">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+    <div className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 py-6 sm:px-6 sm:py-10">
+      <header className="flex flex-col gap-5 border-b border-line pb-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-red">
-              Your oval
-            </p>
-            <h1 className="text-2xl font-semibold text-balance text-ink sm:text-3xl">
+            <h1 className="text-3xl font-bold tracking-tight text-balance text-ink sm:text-4xl">
               {activeTrack.name}
             </h1>
-            <p className="mt-1 text-sm text-muted">{activeTrack.city}</p>
+            <p className="mt-1 text-base text-muted">{activeTrack.city}</p>
           </div>
           <div className="flex flex-wrap gap-2" role="tablist" aria-label="Track venue">
             {TRACKS.map((t) => (
@@ -189,10 +161,10 @@ export function TrackWorkspace() {
                   setActiveSlug(t.slug);
                   setFlagsOpen(false);
                 }}
-                className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+                className={`rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors ${
                   t.slug === activeSlug
-                    ? "bg-navy text-white shadow-sm"
-                    : "bg-surface text-navy ring-1 ring-line hover:bg-white"
+                    ? "bg-navy text-white shadow-md"
+                    : "bg-surface text-navy ring-2 ring-line hover:ring-navy/25"
                 }`}
               >
                 {t.name}
@@ -229,7 +201,7 @@ export function TrackWorkspace() {
               </button>
             ))}
           </div>
-          <label className="cursor-pointer rounded-lg bg-navy px-4 py-2 text-sm font-medium text-white shadow-sm hover:opacity-95">
+          <label className="cursor-pointer rounded-lg bg-navy px-5 py-2.5 text-sm font-semibold text-white shadow-md hover:opacity-95">
             Upload TCX
             <input
               type="file"
@@ -256,9 +228,17 @@ export function TrackWorkspace() {
         {saveMsg ? <p className="text-sm text-navy">{saveMsg}</p> : null}
       </header>
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:items-start">
-        <div className="flex flex-col gap-2">
-          <div className="relative min-h-[320px] overflow-hidden rounded-2xl border border-line bg-surface shadow-sm sm:min-h-[380px]">
+      {hasSession ? (
+        <VerdictBand
+          analysis={analysis}
+          flagsOpen={flagsOpen}
+          onToggleFlags={() => setFlagsOpen((o) => !o)}
+        />
+      ) : null}
+
+      <div className="grid gap-8 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,0.65fr)] lg:items-start">
+        <div className="flex flex-col gap-3">
+          <div className="relative -mx-4 min-h-[340px] overflow-hidden rounded-none border-y-2 border-navy/20 bg-navy sm:mx-0 sm:min-h-[420px] sm:rounded-2xl sm:border-2 sm:ring-4 sm:ring-navy/10">
             <TrackMapLazy
               points={slot.trackpoints}
               center={mapCenter}
@@ -277,63 +257,46 @@ export function TrackWorkspace() {
           </p>
         </div>
 
-        <div className="flex flex-col gap-4">
+        <aside className="flex flex-col gap-4 lg:sticky lg:top-6">
           {!hasSession ? (
-            <div className="rounded-2xl border border-line bg-surface p-6 text-sm text-muted shadow-sm">
-              Upload a TCX for <strong className="text-ink">{activeTrack.name}</strong> only.
-              Sha Tin and Kai Tak stay in separate tabs.
+            <div className="rounded-2xl border-2 border-dashed border-navy/25 bg-surface p-8 text-center text-sm text-muted">
+              <p className="text-base font-semibold text-ink">No session yet</p>
+              <p className="mt-2 text-pretty">
+                Upload a TCX for <strong>{activeTrack.name}</strong>. Sha Tin and Kai Tak stay
+                separate.
+              </p>
             </div>
           ) : (
-            <article
-              className={`rounded-2xl border p-5 shadow-sm ${style.accent}`}
-            >
-              <p className="text-sm text-muted">{formatDate(analysis.startedAt)}</p>
-              <div className="mt-2 flex flex-wrap items-center gap-2">
-                <span className={`rounded-full px-3 py-1 text-sm font-semibold ${style.badge}`}>
-                  {style.label}
-                </span>
-                <span className="font-mono text-xs text-muted">
-                  {analysis.workReps.length} reps · {analysis.qualityMinutes.toFixed(0)} min work
-                </span>
-              </div>
-              <h2 className="mt-3 text-lg font-semibold text-ink">
-                {analysis.verdictHeadline}
-              </h2>
-              <p className="mt-2 text-sm leading-relaxed text-muted">
-                {analysis.verdictDetail}
-              </p>
-              <div className="mt-4 space-y-2">
-                <FitBar label="Copeland" value={analysis.progress.copelandFit} tone="navy" />
-                <FitBar label="Bakken" value={analysis.progress.bakkenFit} tone="red" />
-              </div>
-              {analysis.flags.length > 0 ? (
-                <div className="mt-4">
-                  <ul className="space-y-2 text-sm text-ink">
-                    {visibleFlags.map((f) => (
-                      <li
-                        key={f}
-                        className="rounded-lg border border-line bg-surface/90 px-3 py-2 leading-snug"
-                      >
-                        {f}
-                      </li>
-                    ))}
-                  </ul>
-                  {analysis.flags.length > 3 ? (
-                    <button
-                      type="button"
-                      className="mt-2 text-xs font-medium text-navy hover:underline"
-                      onClick={() => setFlagsOpen((o) => !o)}
-                    >
-                      {flagsOpen
-                        ? "Show fewer"
-                        : `Show all ${analysis.flags.length} flags`}
-                    </button>
-                  ) : null}
+            <div className="rounded-2xl border border-line bg-surface p-5 shadow-sm">
+              <h2 className="text-sm font-bold text-ink">Session</h2>
+              <dl className="mt-4 space-y-3 font-mono text-sm">
+                <div className="flex justify-between gap-4 border-b border-line pb-3">
+                  <dt className="text-muted">Decoupling</dt>
+                  <dd className="font-bold tabular-nums text-ink">
+                    {analysis.core.decouplingIndex.toFixed(1)}%
+                  </dd>
                 </div>
-              ) : null}
-            </article>
+                <div className="flex justify-between gap-4 border-b border-line pb-3">
+                  <dt className="text-muted">Pace drift</dt>
+                  <dd className="font-bold tabular-nums text-ink">
+                    {analysis.paceDriftPct >= 0 ? "+" : ""}
+                    {analysis.paceDriftPct.toFixed(1)}%
+                  </dd>
+                </div>
+                <div className="flex justify-between gap-4 border-b border-line pb-3">
+                  <dt className="text-muted">Sub-LTHR reps</dt>
+                  <dd className="font-bold tabular-nums text-ink">
+                    {(analysis.progress.subThresholdShare * 100).toFixed(0)}%
+                  </dd>
+                </div>
+                <div className="flex justify-between gap-4">
+                  <dt className="text-muted">LTHR ceiling</dt>
+                  <dd className="font-bold tabular-nums text-red">{lthr} bpm</dd>
+                </div>
+              </dl>
+            </div>
           )}
-        </div>
+        </aside>
       </div>
 
       {hasSession ? (
@@ -350,8 +313,8 @@ export function TrackWorkspace() {
 function RepTable({ analysis, lthr }: { analysis: SessionAnalysis; lthr: number }) {
   return (
     <section className="rounded-2xl border border-line bg-surface shadow-sm">
-      <div className="border-b border-line px-4 py-3 sm:px-5">
-        <h2 className="text-base font-semibold text-ink">Work reps</h2>
+      <div className="border-b border-line bg-slate-50 px-4 py-4 sm:px-5">
+        <h2 className="text-lg font-bold text-ink">Work reps</h2>
         <p className="text-xs text-muted">Max HR ≥ LTHR highlighted</p>
       </div>
       <div className="max-h-[min(70vh,520px)] overflow-auto">

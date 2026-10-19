@@ -24,9 +24,23 @@
 }
 
 body {
-  background: var(--bg);
+  background:
+    linear-gradient(180deg, oklch(0.96 0.012 265) 0%, var(--bg) 14rem),
+    var(--bg);
   color: var(--ink);
   font-family: var(--font-geist-sans), system-ui, sans-serif;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .fit-bar-fill {
+    transition: width 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fit-bar-fill {
+    transition: none;
+  }
 }
 
 .leaflet-container {
