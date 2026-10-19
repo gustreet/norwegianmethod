@@ -15,6 +15,7 @@ import type {
 } from "@/lib/types";
 import { CoreMetricsPanel } from "./core-metrics-panel";
 import { EffortSpeedChart } from "./effort-speed-chart";
+import { FitBar } from "./fit-bar";
 import { TrackMapLazy } from "./track-map-lazy";
 
 type SlotState = {
@@ -33,21 +34,21 @@ const emptySlot = (): SlotState => ({
 
 const verdictStyles: Record<
   SessionVerdict,
-  { ring: string; badge: string; label: string }
+  { accent: string; badge: string; label: string }
 > = {
   "on-method": {
-    ring: "#00205B",
-    badge: "bg-[var(--navy)]/10 text-[var(--navy)]",
+    accent: "border-navy/30 bg-navy/5",
+    badge: "bg-navy/12 text-navy",
     label: "On method",
   },
   borderline: {
-    ring: "#c9a227",
-    badge: "bg-amber-500/15 text-amber-950",
+    accent: "border-amber-400/50 bg-amber-50",
+    badge: "bg-amber-100 text-amber-950",
     label: "Borderline",
   },
   "too-hard": {
-    ring: "#BA0C2F",
-    badge: "bg-[var(--red)]/15 text-[var(--red)]",
+    accent: "border-red/35 bg-red/5",
+    badge: "bg-red/12 text-red",
     label: "Too hard",
   },
 };
@@ -61,9 +62,11 @@ export function TrackWorkspace() {
   const [error, setError] = useState<string | null>(null);
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
   const [mapOverlay, setMapOverlay] = useState<"pace" | "hr">("pace");
+  const [flagsOpen, setFlagsOpen] = useState(false);
 
   const activeTrack = trackBySlug(activeSlug) ?? TRACKS[0];
   const slot = slots[activeSlug] ?? emptySlot();
+  const hasSession = slot.laps.length > 0;
 
   const analysis: SessionAnalysis = useMemo(
     () => analyzeSession(slot.laps, slot.startedAt, lthr),
@@ -81,6 +84,7 @@ export function TrackWorkspace() {
   );
 
   const style = verdictStyles[analysis.verdict];
+  const visibleFlags = flagsOpen ? analysis.flags : analysis.flags.slice(0, 3);
 
   const setSlot = useCallback((slug: string, next: Partial<SlotState>) => {
     setSlots((prev) => ({
@@ -134,7 +138,7 @@ export function TrackWorkspace() {
 
   async function saveSession() {
     setSaveMsg(null);
-    if (slot.laps.length === 0) return;
+    if (!hasSession) return;
     const res = await fetch("/api/sessions", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -162,53 +166,99 @@ export function TrackWorkspace() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-8 sm:px-6">
-      <div className="flex flex-wrap gap-2 border-b border-[var(--line)] pb-4">
-        {TRACKS.map((t) => (
-          <button
-            key={t.slug}
-            type="button"
-            onClick={() => setActiveSlug(t.slug)}
-            className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
-              t.slug === activeSlug
-                ? "bg-[var(--navy)] text-white"
-                : "bg-white text-[var(--navy)] ring-1 ring-[var(--line)] hover:bg-[var(--surface)]"
-            }`}
-          >
-            {t.name}
-            {slots[t.slug]?.loaded && slots[t.slug].laps.length > 0 ? (
-              <span className="ml-2 opacity-70">· loaded</span>
-            ) : null}
-          </button>
-        ))}
-      </div>
-
-      <section className="grid gap-6 lg:grid-cols-2">
-        <div className="flex flex-col gap-3">
+    <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-6 sm:px-6 sm:py-8">
+      <header className="flex flex-col gap-4 border-b border-line pb-5">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="text-sm font-medium text-[var(--red)]">Your oval</p>
-            <h1 className="text-2xl font-semibold text-[var(--ink)] sm:text-3xl">
+            <p className="text-xs font-semibold uppercase tracking-wide text-red">
+              Your oval
+            </p>
+            <h1 className="text-2xl font-semibold text-balance text-ink sm:text-3xl">
               {activeTrack.name}
             </h1>
-            <p className="mt-1 text-sm text-[var(--muted)]">{activeTrack.city}</p>
+            <p className="mt-1 text-sm text-muted">{activeTrack.city}</p>
           </div>
+          <div className="flex flex-wrap gap-2" role="tablist" aria-label="Track venue">
+            {TRACKS.map((t) => (
+              <button
+                key={t.slug}
+                type="button"
+                role="tab"
+                aria-selected={t.slug === activeSlug}
+                onClick={() => {
+                  setActiveSlug(t.slug);
+                  setFlagsOpen(false);
+                }}
+                className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+                  t.slug === activeSlug
+                    ? "bg-navy text-white shadow-sm"
+                    : "bg-surface text-navy ring-1 ring-line hover:bg-white"
+                }`}
+              >
+                {t.name}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-end gap-3">
+          <label className="text-sm font-medium text-ink">
+            LTHR (bpm)
+            <input
+              type="number"
+              min={120}
+              max={210}
+              value={lthr}
+              onChange={(e) => setLthr(Number(e.target.value) || 172)}
+              className="mt-1 block w-24 rounded-lg border border-line bg-surface px-3 py-2 font-mono text-sm shadow-sm"
+            />
+          </label>
           <div className="flex flex-wrap gap-2">
             {(["pace", "hr"] as const).map((mode) => (
               <button
                 key={mode}
                 type="button"
                 onClick={() => setMapOverlay(mode)}
-                className={`rounded-lg px-3 py-1.5 text-xs font-medium ${
+                className={`rounded-lg px-3 py-2 text-xs font-medium ${
                   mapOverlay === mode
-                    ? "bg-[var(--navy)] text-white"
-                    : "bg-white text-[var(--navy)] ring-1 ring-[var(--line)]"
+                    ? "bg-navy text-white"
+                    : "bg-surface text-navy ring-1 ring-line"
                 }`}
               >
-                Map: {mode === "pace" ? "speed" : "effort (HR)"}
+                Map · {mode === "pace" ? "speed" : "HR"}
               </button>
             ))}
           </div>
-          <div className="min-h-[360px] flex-1 overflow-hidden rounded-2xl border border-[var(--line)] shadow-sm">
+          <label className="cursor-pointer rounded-lg bg-navy px-4 py-2 text-sm font-medium text-white shadow-sm hover:opacity-95">
+            Upload TCX
+            <input
+              type="file"
+              accept=".tcx,application/xml,text/xml"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) onFile(f, activeTrack);
+              }}
+            />
+          </label>
+          <button
+            type="button"
+            onClick={saveSession}
+            disabled={!hasSession}
+            className="rounded-lg border border-navy bg-surface px-4 py-2 text-sm font-medium text-navy hover:bg-navy/5 disabled:opacity-40"
+          >
+            Save to Neon
+          </button>
+        </div>
+        {error ? (
+          <p className="text-sm text-red" role="alert">{error}</p>
+        ) : null}
+        {saveMsg ? <p className="text-sm text-navy">{saveMsg}</p> : null}
+      </header>
+
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:items-start">
+        <div className="flex flex-col gap-2">
+          <div className="relative min-h-[320px] overflow-hidden rounded-2xl border border-line bg-surface shadow-sm sm:min-h-[380px]">
             <TrackMapLazy
               points={slot.trackpoints}
               center={mapCenter}
@@ -216,104 +266,82 @@ export function TrackWorkspace() {
               lthr={lthr}
             />
           </div>
-          <p className="text-xs text-[var(--muted)]">
+          <p className="text-xs leading-relaxed text-muted">
             {slot.trackpoints.length === 0
               ? "No TCX for this tab yet."
               : detected?.slug === activeSlug
-                ? "Map and reps are one TCX · GPS matches this tab."
+                ? "One TCX per tab · GPS matches this oval."
                 : detected
-                  ? `This tab is ${activeTrack.name}, but GPS centroid is closer to ${detected.name}.`
-                  : "Map and reps share one file · GPS not near a saved oval."}
+                  ? `GPS centroid is closer to ${detected.name} than ${activeTrack.name}.`
+                  : "GPS loaded · not matched to a saved oval."}
           </p>
         </div>
 
         <div className="flex flex-col gap-4">
-          <div className="flex flex-wrap items-end justify-between gap-3">
-            <label className="text-sm font-medium text-[var(--ink)]">
-              LTHR (bpm)
-              <input
-                type="number"
-                min={120}
-                max={210}
-                value={lthr}
-                onChange={(e) => setLthr(Number(e.target.value) || 172)}
-                className="mt-1 w-28 rounded-lg border border-[var(--line)] bg-white px-3 py-2 font-mono text-sm"
-              />
-            </label>
-            <div className="flex flex-wrap gap-2">
-              <label className="cursor-pointer rounded-lg bg-[var(--navy)] px-4 py-2.5 text-sm font-medium text-white hover:opacity-95">
-                Upload TCX
-                <input
-                  type="file"
-                  accept=".tcx,application/xml,text/xml"
-                  className="hidden"
-                  onChange={(e) => {
-                    const f = e.target.files?.[0];
-                    if (f) onFile(f, activeTrack);
-                  }}
-                />
-              </label>
-              <button
-                type="button"
-                onClick={saveSession}
-                disabled={slot.laps.length === 0}
-                className="rounded-lg border border-[var(--navy)] px-4 py-2.5 text-sm font-medium text-[var(--navy)] hover:bg-[var(--navy)]/5 disabled:opacity-40"
-              >
-                Save to Neon
-              </button>
+          {!hasSession ? (
+            <div className="rounded-2xl border border-line bg-surface p-6 text-sm text-muted shadow-sm">
+              Upload a TCX for <strong className="text-ink">{activeTrack.name}</strong> only.
+              Sha Tin and Kai Tak stay in separate tabs.
             </div>
-          </div>
-          {error ? <p className="text-sm text-[var(--red)]" role="alert">{error}</p> : null}
-          {saveMsg ? <p className="text-sm text-[var(--navy)]">{saveMsg}</p> : null}
-
-          {slot.laps.length === 0 ? (
-            <p className="rounded-xl border border-[var(--line)] bg-white p-6 text-sm text-[var(--muted)]">
-              Upload a TCX for {activeTrack.name} only. Sha Tin and Kai Tak stay separate.
-            </p>
           ) : (
             <article
-              className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-5"
-              style={{ boxShadow: `inset 0 0 0 1px ${style.ring}22` }}
+              className={`rounded-2xl border p-5 shadow-sm ${style.accent}`}
             >
-              <p className="text-sm text-[var(--muted)]">{formatDate(analysis.startedAt)}</p>
-              <div className="mt-2 flex flex-wrap gap-2">
-                <span className={`rounded-full px-3 py-1 text-sm font-medium ${style.badge}`}>
+              <p className="text-sm text-muted">{formatDate(analysis.startedAt)}</p>
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <span className={`rounded-full px-3 py-1 text-sm font-semibold ${style.badge}`}>
                   {style.label}
                 </span>
-                <span className="rounded-full bg-[var(--navy)]/10 px-3 py-1 font-mono text-xs text-[var(--navy)]">
-                  Copeland {analysis.progress.copelandFit}
-                </span>
-                <span className="rounded-full bg-[var(--red)]/10 px-3 py-1 font-mono text-xs text-[var(--red)]">
-                  Bakken {analysis.progress.bakkenFit}
-                </span>
-                <span className="font-mono text-sm text-[var(--muted)]">
-                  {analysis.workReps.length} reps · {analysis.qualityMinutes.toFixed(0)} quality min
+                <span className="font-mono text-xs text-muted">
+                  {analysis.workReps.length} reps · {analysis.qualityMinutes.toFixed(0)} min work
                 </span>
               </div>
-              <h2 className="mt-3 text-xl font-semibold">{analysis.verdictHeadline}</h2>
-              <p className="mt-2 text-sm leading-relaxed text-[var(--muted)]">
+              <h2 className="mt-3 text-lg font-semibold text-ink">
+                {analysis.verdictHeadline}
+              </h2>
+              <p className="mt-2 text-sm leading-relaxed text-muted">
                 {analysis.verdictDetail}
               </p>
+              <div className="mt-4 space-y-2">
+                <FitBar label="Copeland" value={analysis.progress.copelandFit} tone="navy" />
+                <FitBar label="Bakken" value={analysis.progress.bakkenFit} tone="red" />
+              </div>
               {analysis.flags.length > 0 ? (
-                <ul className="mt-4 space-y-1.5 text-sm text-[var(--ink)]">
-                  {analysis.flags.map((f) => (
-                    <li key={f} className="rounded-lg bg-white/80 px-3 py-2 ring-1 ring-[var(--line)]">
-                      {f}
-                    </li>
-                  ))}
-                </ul>
+                <div className="mt-4">
+                  <ul className="space-y-2 text-sm text-ink">
+                    {visibleFlags.map((f) => (
+                      <li
+                        key={f}
+                        className="rounded-lg border border-line bg-surface/90 px-3 py-2 leading-snug"
+                      >
+                        {f}
+                      </li>
+                    ))}
+                  </ul>
+                  {analysis.flags.length > 3 ? (
+                    <button
+                      type="button"
+                      className="mt-2 text-xs font-medium text-navy hover:underline"
+                      onClick={() => setFlagsOpen((o) => !o)}
+                    >
+                      {flagsOpen
+                        ? "Show fewer"
+                        : `Show all ${analysis.flags.length} flags`}
+                    </button>
+                  ) : null}
+                </div>
               ) : null}
             </article>
           )}
         </div>
-      </section>
+      </div>
 
-      {slot.laps.length > 0 ? (
-        <>
+      {hasSession ? (
+        <div className="flex flex-col gap-6">
           <CoreMetricsPanel analysis={analysis} />
           <EffortSpeedChart core={analysis.core} />
           <RepTable analysis={analysis} lthr={lthr} />
-        </>
+        </div>
       ) : null}
     </div>
   );
@@ -321,36 +349,45 @@ export function TrackWorkspace() {
 
 function RepTable({ analysis, lthr }: { analysis: SessionAnalysis; lthr: number }) {
   return (
-    <section>
-      <h3 className="text-lg font-semibold text-[var(--ink)]">Work reps</h3>
-      <div className="mt-4 overflow-x-auto rounded-2xl border border-[var(--line)]">
-        <table className="min-w-full text-left text-sm">
-          <thead className="bg-[var(--navy)] text-white">
+    <section className="rounded-2xl border border-line bg-surface shadow-sm">
+      <div className="border-b border-line px-4 py-3 sm:px-5">
+        <h2 className="text-base font-semibold text-ink">Work reps</h2>
+        <p className="text-xs text-muted">Max HR ≥ LTHR highlighted</p>
+      </div>
+      <div className="max-h-[min(70vh,520px)] overflow-auto">
+        <table className="min-w-full border-collapse text-left text-sm">
+          <thead className="sticky top-0 z-10 bg-navy text-white shadow-sm">
             <tr>
-              <th className="px-4 py-3 font-medium">#</th>
-              <th className="px-4 py-3 font-medium">400 m</th>
-              <th className="px-4 py-3 font-medium">Pace</th>
-              <th className="px-4 py-3 font-medium">Avg HR</th>
-              <th className="px-4 py-3 font-medium">Max HR</th>
-              <th className="px-4 py-3 font-medium">Decouple</th>
+              <th scope="col" className="px-4 py-3 font-medium">Rep</th>
+              <th scope="col" className="px-4 py-3 font-medium">Time</th>
+              <th scope="col" className="px-4 py-3 font-medium">Pace /km</th>
+              <th scope="col" className="px-4 py-3 font-medium">Avg HR</th>
+              <th scope="col" className="px-4 py-3 font-medium">Max HR</th>
+              <th scope="col" className="px-4 py-3 font-medium">Decouple</th>
             </tr>
           </thead>
           <tbody>
-            {analysis.workReps.map((rep) => {
+            {analysis.workReps.map((rep, row) => {
               const hot = rep.maxHr >= lthr;
               const rm = analysis.core.repMetrics.find((m) => m.index === rep.index);
               return (
                 <tr
                   key={rep.lapNumber}
-                  className={hot ? "bg-[var(--red)]/8" : "border-t border-[var(--line)]"}
+                  className={`border-t border-line ${
+                    hot ? "bg-red/8" : row % 2 === 0 ? "bg-white" : "bg-slate-50/80"
+                  }`}
                 >
-                  <td className="px-4 py-3 font-mono">{rep.index}</td>
-                  <td className="px-4 py-3 font-mono">{formatDuration(rep.seconds)}</td>
-                  <td className="px-4 py-3 font-mono">{formatPace(rep.paceMinPerKm)}</td>
-                  <td className="px-4 py-3 font-mono">{rep.avgHr}</td>
-                  <td className="px-4 py-3 font-mono">{rep.maxHr}</td>
-                  <td className="px-4 py-3 font-mono text-[var(--muted)]">
-                    {rm ? `${rm.decouplingRep >= 0 ? "+" : ""}${rm.decouplingRep.toFixed(1)}%` : "—"}
+                  <td className="px-4 py-2.5 font-mono text-ink">{rep.index}</td>
+                  <td className="px-4 py-2.5 font-mono">{formatDuration(rep.seconds)}</td>
+                  <td className="px-4 py-2.5 font-mono">{formatPace(rep.paceMinPerKm)}</td>
+                  <td className="px-4 py-2.5 font-mono">{rep.avgHr}</td>
+                  <td className={`px-4 py-2.5 font-mono ${hot ? "font-semibold text-red" : ""}`}>
+                    {rep.maxHr}
+                  </td>
+                  <td className="px-4 py-2.5 font-mono text-muted">
+                    {rm
+                      ? `${rm.decouplingRep >= 0 ? "+" : ""}${rm.decouplingRep.toFixed(1)}%`
+                      : "—"}
                   </td>
                 </tr>
               );

@@ -3,7 +3,7 @@
 :root {
   --red: #ba0c2f;
   --navy: #00205b;
-  --bg: #f8fafc;
+  --bg: #f1f5f9;
   --surface: #ffffff;
   --ink: #0f172a;
   --muted: #475569;
@@ -13,6 +13,12 @@
 @theme inline {
   --color-background: var(--bg);
   --color-foreground: var(--ink);
+  --color-navy: #00205b;
+  --color-red: #ba0c2f;
+  --color-ink: #0f172a;
+  --color-muted: #475569;
+  --color-line: #e2e8f0;
+  --color-surface: #ffffff;
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
@@ -25,4 +31,11 @@ body {
 
 .leaflet-container {
   font-family: inherit;
+  z-index: 0;
+}
+
+.leaflet-pane,
+.leaflet-top,
+.leaflet-bottom {
+  z-index: 1;
 }

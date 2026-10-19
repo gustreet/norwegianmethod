@@ -1,4 +1,5 @@
 import type { Lap, SessionAnalysis, SessionVerdict } from "./types";
+import { EMPTY_SESSION_ANALYSIS } from "./empty-analysis";
 import { evaluateSession } from "./method/evaluate";
 
 const VERDICT_COPY: Record<
@@ -27,6 +28,9 @@ export function analyzeSession(
   startedAt: string | null,
   lthr: number,
 ): SessionAnalysis {
+  if (laps.length === 0) {
+    return { ...EMPTY_SESSION_ANALYSIS, startedAt };
+  }
   const ev = evaluateSession(laps, lthr, startedAt);
   const { prepared, core, copeland, bakken, verdict, flags } = ev;
   const copy = VERDICT_COPY[verdict];

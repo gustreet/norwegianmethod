@@ -64,7 +64,7 @@ export function TrackMap({ points, center, highlight = "pace", lthr = 172 }: Pro
     <MapContainer
       center={[c.lat, c.lng]}
       zoom={17}
-      className="h-full min-h-[360px] w-full rounded-2xl z-0"
+      className="h-full min-h-[320px] w-full rounded-2xl"
       scrollWheelZoom
     >
       <TileLayer url={OSM_TILE_URL} attribution={OSM_ATTRIBUTION} />

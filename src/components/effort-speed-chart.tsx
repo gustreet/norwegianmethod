@@ -2,7 +2,6 @@
 
 import type { SessionCoreMetrics } from "@/lib/types";
 
-/** Normalized rep overlay: speed (inverted pace) vs HR vs rep 1. */
 export function EffortSpeedChart({ core }: { core: SessionCoreMetrics }) {
   const reps = core.repMetrics;
   if (reps.length === 0) return null;
@@ -13,11 +12,13 @@ export function EffortSpeedChart({ core }: { core: SessionCoreMetrics }) {
   const maxP = Math.max(...paces);
   const minH = Math.min(...hrs);
   const maxH = Math.max(...hrs);
-  const pad = 8;
-  const w = 640;
-  const h = 160;
-  const innerW = w - pad * 2;
-  const innerH = h - pad * 2;
+  const padX = 12;
+  const padY = 20;
+  const labelH = 16;
+  const w = Math.max(320, reps.length * 28 + padX * 2);
+  const h = 200;
+  const innerW = w - padX * 2;
+  const innerH = h - padY - labelH;
 
   const normSpeed = (pace: number) => {
     if (maxP === minP) return 0.5;
@@ -28,84 +29,101 @@ export function EffortSpeedChart({ core }: { core: SessionCoreMetrics }) {
     return (hr - minH) / (maxH - minH);
   };
 
-  const barW = innerW / reps.length - 4;
+  const slotW = innerW / reps.length;
+  const baseline = padY + innerH * 0.55;
 
   return (
-    <section aria-labelledby="effort-speed-heading">
-      <h3 id="effort-speed-heading" className="text-lg font-semibold text-[var(--ink)]">
-        Effort vs speed overlay
-      </h3>
-      <p className="mt-1 text-xs text-[var(--muted)]">
-        Per rep: navy = relative speed (faster = taller), red = relative HR. Gap growing =
-        decoupling.
+    <section
+      className="rounded-2xl border border-line bg-surface p-4 sm:p-5"
+      aria-labelledby="effort-speed-heading"
+    >
+      <h2 id="effort-speed-heading" className="text-base font-semibold text-ink">
+        Effort vs speed
+      </h2>
+      <p className="mt-1 text-sm text-muted">
+        Navy = relative speed · red = relative HR · dashed = outside Bakken split band
       </p>
-      <div className="mt-3 overflow-x-auto rounded-2xl border border-[var(--line)] bg-white p-3">
+      <div className="mt-4 overflow-x-auto rounded-xl border border-line bg-white">
         <svg
           viewBox={`0 0 ${w} ${h}`}
-          className="min-w-[320px] w-full max-w-3xl"
+          className="w-full min-w-[min(100%,320px)]"
+          style={{ minWidth: `${Math.min(w, 640)}px` }}
           role="img"
-          aria-label="Per-rep speed and heart rate bars"
+          aria-label="Per-rep speed and heart rate"
         >
+          <line
+            x1={padX}
+            y1={baseline}
+            x2={w - padX}
+            y2={baseline}
+            stroke="#e2e8f0"
+            strokeWidth={1}
+          />
           {reps.map((r, i) => {
-            const x = pad + i * (innerW / reps.length) + 2;
-            const sh = normSpeed(r.paceMinKm) * innerH * 0.45;
-            const eh = normHr(r.avgHr) * innerH * 0.45;
-            const miss = r.paceMiss;
+            const x = padX + i * slotW + slotW * 0.12;
+            const barW = slotW * 0.76;
+            const sh = normSpeed(r.paceMinKm) * innerH * 0.42;
+            const eh = normHr(r.avgHr) * innerH * 0.42;
+            const showLabel = reps.length <= 24 && i % (reps.length > 16 ? 2 : 1) === 0;
             return (
               <g key={r.lapNumber}>
                 <rect
                   x={x}
-                  y={pad + innerH * 0.5 - sh}
+                  y={baseline - sh}
                   width={barW / 2 - 1}
-                  height={sh}
-                  fill="#00205B"
-                  opacity={0.85}
+                  height={Math.max(2, sh)}
+                  fill="#00205b"
+                  opacity={0.9}
                   rx={2}
                 />
                 <rect
                   x={x + barW / 2}
-                  y={pad + innerH * 0.5 - eh}
+                  y={baseline - eh}
                   width={barW / 2 - 1}
-                  height={eh}
-                  fill="#BA0C2F"
-                  opacity={0.75}
+                  height={Math.max(2, eh)}
+                  fill="#ba0c2f"
+                  opacity={0.8}
                   rx={2}
                 />
-                {miss ? (
+                {r.paceMiss ? (
                   <rect
-                    x={x - 1}
-                    y={pad}
-                    width={barW + 2}
-                    height={innerH}
+                    x={x - 2}
+                    y={padY}
+                    width={barW + 4}
+                    height={innerH * 0.55}
                     fill="none"
-                    stroke="#BA0C2F"
+                    stroke="#ba0c2f"
                     strokeWidth={1.5}
-                    strokeDasharray="3 2"
+                    strokeDasharray="4 3"
                     rx={3}
                   />
+                ) : null}
+                {showLabel ? (
+                  <text
+                    x={x + barW / 2}
+                    y={h - 4}
+                    textAnchor="middle"
+                    fill="#475569"
+                    fontSize={10}
+                    fontFamily="var(--font-geist-mono), monospace"
+                  >
+                    {r.index}
+                  </text>
                 ) : null}
               </g>
             );
           })}
-          <line
-            x1={pad}
-            y1={pad + innerH * 0.5}
-            x2={w - pad}
-            y2={pad + innerH * 0.5}
-            stroke="var(--line)"
-          />
         </svg>
-        <div className="mt-2 flex flex-wrap gap-4 text-xs text-[var(--muted)]">
-          <span className="flex items-center gap-1.5">
-            <span className="inline-block h-3 w-3 rounded-sm bg-[var(--navy)]" />
-            Speed (pace)
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="inline-block h-3 w-3 rounded-sm bg-[var(--red)]" />
-            Effort (avg HR)
-          </span>
-          <span>Dashed = outside Bakken split band</span>
-        </div>
+      </div>
+      <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-xs text-muted">
+        <span className="inline-flex items-center gap-2">
+          <span className="h-2.5 w-2.5 rounded-sm bg-navy" />
+          Speed
+        </span>
+        <span className="inline-flex items-center gap-2">
+          <span className="h-2.5 w-2.5 rounded-sm bg-red" />
+          Effort (avg HR)
+        </span>
       </div>
     </section>
   );

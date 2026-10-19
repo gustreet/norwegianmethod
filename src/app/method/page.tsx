@@ -25,6 +25,18 @@ export default function MethodPage() {
         <li>Your track sessions are judged on drift and LTHR crossings, not Garmin&apos;s VO₂ label.</li>
       </ul>
 
+      <h2 className="text-xl font-semibold text-[var(--navy)] mt-10">Core metrics (deterministic)</h2>
+      <p className="text-sm text-[var(--muted)] not-prose">
+        All scores are rule-based in <code className="text-xs">src/lib/method/</code> — no LLM. Vitest golden tests pin your sample TCX files.
+      </p>
+      <ul className="text-sm leading-relaxed text-[var(--ink)]">
+        <li><strong>Speed:</strong> pace drift rep 1→last, pace CV, per-rep speed vs rep 1.</li>
+        <li><strong>Effort:</strong> avg/max HR, HR drift, intensity as % of LTHR.</li>
+        <li><strong>Decoupling:</strong> pace drift % minus HR drift % — speed fading faster than effort explains.</li>
+        <li><strong>Efficiency:</strong> speed per bpm (rep 1 vs last Δ).</li>
+        <li><strong>Progress rings:</strong> Copeland fit and Bakken fit (0–100) from pass/warn/fail rules.</li>
+      </ul>
+
       <h2 className="text-xl font-semibold text-[var(--navy)] mt-10">Your track</h2>
       <p className="text-sm text-[var(--muted)]">
         Map center: {HOME_TRACK.lat.toFixed(4)}, {HOME_TRACK.lng.toFixed(4)} — derived from your

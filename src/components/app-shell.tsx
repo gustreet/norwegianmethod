@@ -1,10 +1,5 @@
 import Link from "next/link";
-
-const links = [
-  { href: "/", label: "Track" },
-  { href: "/sessions", label: "Sessions" },
-  { href: "/method", label: "Method" },
-];
+import { AppNav } from "./app-nav";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   return (
@@ -23,17 +18,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <p className="text-xs text-white/70">Sha Tin & Kai Tak · separate sessions</p>
             </div>
           </Link>
-          <nav className="flex gap-1 sm:gap-2" aria-label="Main">
-            {links.map((l) => (
-              <Link
-                key={l.href}
-                href={l.href}
-                className="rounded-lg px-3 py-2 text-sm font-medium text-white/90 hover:bg-white/10"
-              >
-                {l.label}
-              </Link>
-            ))}
-          </nav>
+          <AppNav />
         </div>
         <div className="h-1 bg-gradient-to-r from-[var(--red)] via-white to-[var(--navy)]" />
       </header>
