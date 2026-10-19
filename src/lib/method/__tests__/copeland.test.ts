@@ -77,7 +77,7 @@ describe("Copeland — deterministic rules", () => {
       recoverySeconds: 60,
       workAvgHr: 160,
       workMaxHr: 168,
-      workSecondsDriftPerRep: 1.2,
+      workSecondsDriftPerRep: 1.35,
     });
     const ev = evaluateSession(laps, LTHR);
     expect(ev.copeland.metrics.copeland_pace_drift_pct).toBeGreaterThan(

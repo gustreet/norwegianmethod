@@ -29,6 +29,14 @@ export const RULE_MESSAGES: Record<string, string> = {
   BAKKEN_REP_COUNT_WARN: "Rep count outside 20–25 classic Bakken block.",
   BAKKEN_DECOUPLING_WARN:
     "Speed faded faster than HR explains — aerobic decoupling.",
+  COPE_FINISH_SOFT:
+    "Last rep avg HR below 90% of session peak — finish too soft for a close.",
+  COPE_FINISH_HOT:
+    "Last rep avg HR above 95% of session peak — close hotter than the 90–95% band.",
+  BAKKEN_FINISH_SOFT:
+    "Finish below 90% peak HR — Bakken expects a real 90–95% close.",
+  BAKKEN_FINISH_HOT:
+    "Finish above 95% peak HR — close overshot the threshold band.",
 };
 
 export function flagsFromRules(codes: string[]): string[] {

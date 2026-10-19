@@ -33,6 +33,17 @@ export const EMPTY_SESSION_ANALYSIS: SessionAnalysis = {
     avgIntensityPctLthr: 0,
     maxConsecutivePaceMiss: 0,
     avgRecoverySec: 0,
+    finishRepIndex: null,
+    finish: {
+      present: false,
+      avgHr: 0,
+      maxHr: 0,
+      sessionPeakMaxHr: 0,
+      avgHrPctOfPeak: 0,
+      inAllOutBand: false,
+      tooSoft: false,
+      tooHot: false,
+    },
     repMetrics: [],
   },
   copeland: {

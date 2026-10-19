@@ -26,6 +26,17 @@ export const COPELAND = {
   earlySubThresholdBelowLthr: 8,
 } as const;
 
+export const BASELINE = {
+  /**
+   * Final work rep is a deliberate close (90–95% HR all-out), excluded from
+   * sub-threshold LTHR counts, drift endpoints, even-split stop rule, and pace CV.
+   */
+  finishRepAllOutHrLow: 0.9,
+  finishRepAllOutHrHigh: 0.95,
+  /** When session max HR is missing, scale LTHR for finish-band reference. */
+  finishRepHrReferenceLthrFactor: 1,
+} as const;
+
 export const BAKKEN = {
   targetRepCountMin: 20,
   targetRepCountMax: 25,

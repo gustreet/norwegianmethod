@@ -1,4 +1,9 @@
 import type { ClassifiedLap, Lap, WorkRep } from "../types";
+import {
+  driftFromFirstToLastControlled,
+  repsOverLthrControlled,
+  splitWorkReps,
+} from "./baseline";
 import { COPELAND } from "./thresholds";
 import { classifyLaps } from "./classify";
 
@@ -32,21 +37,29 @@ export function prepareFromLaps(laps: Lap[], lthr: number) {
   const workReps = buildWorkReps(classified);
   const recoveryLaps = classified.filter((l) => l.kind === "recovery");
 
+  const { controlled } = splitWorkReps(workReps);
   const paces = workReps.map((r) => r.paceMinPerKm).filter((p) => p > 0);
+  const controlledPaces = controlled
+    .map((r) => r.paceMinPerKm)
+    .filter((p) => p > 0);
   const hrs = workReps.map((r) => r.avgHr);
   const qualityMinutes = workReps.reduce((s, r) => s + r.seconds, 0) / 60;
-  const avgWorkPace = paces.reduce((a, b) => a + b, 0) / (paces.length || 1);
-  const firstWorkPace = paces[0] ?? 0;
-  const lastWorkPace = paces[paces.length - 1] ?? 0;
-  const paceDriftPct =
-    firstWorkPace > 0
-      ? ((lastWorkPace - firstWorkPace) / firstWorkPace) * 100
+  const avgWorkPace =
+    controlledPaces.reduce((a, b) => a + b, 0) / (controlledPaces.length || 1);
+  const drift = driftFromFirstToLastControlled(workReps);
+  const {
+    paceDriftPct,
+    firstWorkPace,
+    lastWorkPace,
+    firstWorkHr,
+    lastWorkHr,
+  } = drift;
+  const avgWorkHr =
+    controlled.length > 0
+      ? controlled.reduce((s, r) => s + r.avgHr, 0) / controlled.length
       : 0;
-  const avgWorkHr = hrs.reduce((a, b) => a + b, 0) / (hrs.length || 1);
-  const firstWorkHr = hrs[0] ?? 0;
-  const lastWorkHr = hrs[hrs.length - 1] ?? 0;
 
-  const repsOverLthr = workReps.filter((r) => r.maxHr >= lthr).length;
+  const repsOverLthr = repsOverLthrControlled(workReps, lthr);
   const earlyReps = workReps.slice(0, COPELAND.earlySubThresholdWindowReps);
   const repsInEarlyWindow = earlyReps.filter(
     (r) => r.avgHr <= lthr - COPELAND.earlySubThresholdBelowLthr,

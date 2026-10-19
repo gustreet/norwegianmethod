@@ -35,6 +35,7 @@ export default function MethodPage() {
         <li><strong>Decoupling:</strong> pace drift % minus HR drift % — speed fading faster than effort explains.</li>
         <li><strong>Efficiency:</strong> speed per bpm (rep 1 vs last Δ).</li>
         <li><strong>Progress rings:</strong> Copeland fit and Bakken fit (0–100) from pass/warn/fail rules.</li>
+        <li><strong>Finish rep:</strong> last work lap treated as ~90–95% HR all-out — excluded from sub-threshold LTHR counts, drift endpoint, even-split stop rule, and pace CV.</li>
       </ul>
 
       <h2 className="text-xl font-semibold text-[var(--navy)] mt-10">Your track</h2>

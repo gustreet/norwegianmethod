@@ -43,6 +43,7 @@ export type SessionVerdict = "on-method" | "borderline" | "too-hard";
 export type RepCoreMetrics = {
   index: number;
   lapNumber: number;
+  role: "controlled" | "finish";
   paceMinKm: number;
   speedMps: number;
   avgHr: number;
@@ -55,6 +56,17 @@ export type RepCoreMetrics = {
   lthrHeadroomBpm: number;
   inEvenSplitBand: boolean;
   paceMiss: boolean;
+};
+
+export type FinishRepAnalysis = {
+  present: boolean;
+  avgHr: number;
+  maxHr: number;
+  sessionPeakMaxHr: number;
+  avgHrPctOfPeak: number;
+  inAllOutBand: boolean;
+  tooSoft: boolean;
+  tooHot: boolean;
 };
 
 export type SessionCoreMetrics = {
@@ -70,6 +82,8 @@ export type SessionCoreMetrics = {
   avgIntensityPctLthr: number;
   maxConsecutivePaceMiss: number;
   avgRecoverySec: number;
+  finishRepIndex: number | null;
+  finish: FinishRepAnalysis;
   repMetrics: RepCoreMetrics[];
 };
 

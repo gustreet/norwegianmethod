@@ -53,6 +53,7 @@ export function evaluateSession(
     firstWorkHr: prep.firstWorkHr,
     lthr,
     core,
+    finish: core.finish,
   });
 
   const bakken = scoreBakken({
@@ -61,6 +62,7 @@ export function evaluateSession(
     paceDriftPct: prep.paceDriftPct,
     avgRecoverySec: prep.avgRecoverySec,
     core,
+    finish: core.finish,
   });
 
   const verdict = combineVerdict(copeland.verdict, bakken.verdict);

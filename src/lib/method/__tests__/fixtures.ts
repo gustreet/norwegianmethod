@@ -59,7 +59,7 @@ export function buildTrackSession(opts: {
 
 /** Perfect Bakken-shaped 20 × 400 @ 30 s, sub-LTHR. */
 export function perfectBakken20(): Lap[] {
-  return buildTrackSession({
+  const laps = buildTrackSession({
     workReps: 20,
     workSeconds: 108,
     recoverySeconds: 30,
@@ -67,6 +67,12 @@ export function perfectBakken20(): Lap[] {
     workMaxHr: 171,
     recoveryAvgHr: 130,
   });
+  const work = laps.filter((l) => l.meters >= 350);
+  const last = work[work.length - 1];
+  const peak = 171;
+  last.avgHr = Math.round(peak * 0.92);
+  last.maxHr = peak;
+  return laps;
 }
 
 /** Copeland on-method: moderate drift, no LTHR crossings. */

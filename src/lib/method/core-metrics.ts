@@ -1,20 +1,25 @@
 import type { WorkRep } from "../types";
+import {
+  analyzeFinishRep,
+  driftFromFirstToLastControlled,
+  repRole,
+  splitWorkReps,
+} from "./baseline";
+import type { FinishRepAnalysis } from "./baseline";
 import { BAKKEN } from "./thresholds";
 
 export type RepCoreMetrics = {
   index: number;
   lapNumber: number;
+  role: "controlled" | "finish";
   paceMinKm: number;
   speedMps: number;
   avgHr: number;
   maxHr: number;
-  /** Speed per heartbeat × 1000 (higher = more speed per bpm). */
   efficiency: number;
-  /** Avg HR as % of LTHR (Copeland sub-threshold guardrail). */
   intensityPctLthr: number;
   paceVsRep1Pct: number;
   hrVsRep1Pct: number;
-  /** Pace fade % minus HR rise % — positive = losing speed faster than effort explains. */
   decouplingRep: number;
   lthrHeadroomBpm: number;
   inEvenSplitBand: boolean;
@@ -25,7 +30,6 @@ export type SessionCoreMetrics = {
   paceDriftPct: number;
   hrDriftBpm: number;
   hrDriftPct: number;
-  /** Session decoupling: pace drift % − HR drift % (aerobic drift proxy). */
   decouplingIndex: number;
   paceCvPct: number;
   efficiencyFirst: number;
@@ -35,6 +39,8 @@ export type SessionCoreMetrics = {
   avgIntensityPctLthr: number;
   maxConsecutivePaceMiss: number;
   avgRecoverySec: number;
+  finishRepIndex: number | null;
+  finish: FinishRepAnalysis;
   repMetrics: RepCoreMetrics[];
 };
 
@@ -75,24 +81,25 @@ export function computeCoreMetrics(
   workReps: WorkRep[],
   lthr: number,
 ): SessionCoreMetrics {
-  const paces = workReps.map((r) => r.paceMinPerKm).filter((p) => p > 0);
-  const hrs = workReps.map((r) => r.avgHr);
-  const firstPace = paces[0] ?? 0;
-  const lastPace = paces[paces.length - 1] ?? 0;
-  const firstHr = hrs[0] ?? 0;
-  const lastHr = hrs[hrs.length - 1] ?? 0;
-
-  const paceDriftPct =
-    firstPace > 0 ? ((lastPace - firstPace) / firstPace) * 100 : 0;
-  const hrDriftBpm = lastHr - firstHr;
-  const hrDriftPct = firstHr > 0 ? (hrDriftBpm / firstHr) * 100 : 0;
+  const { controlled, finish } = splitWorkReps(workReps);
+  const drift = driftFromFirstToLastControlled(workReps);
+  const { paceDriftPct, hrDriftBpm, hrDriftPct } = drift;
   const decouplingIndex = paceDriftPct - hrDriftPct;
 
-  const paceMean = paces.reduce((a, b) => a + b, 0) / (paces.length || 1);
+  const controlledPaces = controlled
+    .map((r) => r.paceMinPerKm)
+    .filter((p) => p > 0);
+  const paceMean =
+    controlledPaces.reduce((a, b) => a + b, 0) / (controlledPaces.length || 1);
   const paceCvPct =
-    paceMean > 0 ? (stdDev(paces) / paceMean) * 100 : 0;
+    paceMean > 0 ? (stdDev(controlledPaces) / paceMean) * 100 : 0;
+
+  const firstPace = drift.firstWorkPace;
+  const firstHr = drift.firstWorkHr;
+  const n = workReps.length;
 
   const repMetrics: RepCoreMetrics[] = workReps.map((r) => {
+    const role = repRole(r.index, n);
     const meters =
       r.paceMinPerKm > 0
         ? ((r.seconds / 60) / r.paceMinPerKm) * 1000
@@ -103,17 +110,14 @@ export function computeCoreMetrics(
       firstPace > 0 ? ((r.paceMinPerKm - firstPace) / firstPace) * 100 : 0;
     const hrVsRep1Pct =
       firstHr > 0 ? ((r.avgHr - firstHr) / firstHr) * 100 : 0;
-    const miss = paceMissVsRep1(r.paceMinPerKm, firstPace);
-    const slowPct = firstPace > 0 ? paceVsRep1Pct : 0;
-    const fastPct = firstPace > 0 ? -paceVsRep1Pct : 0;
-    const inBand =
-      !miss &&
-      slowPct <= BAKKEN.paceMissSlowPct &&
-      fastPct <= BAKKEN.paceMissFastPct;
+    const miss =
+      role === "finish" ? false : paceMissVsRep1(r.paceMinPerKm, firstPace);
+    const inBand = role === "finish" ? true : !miss;
 
     return {
       index: r.index,
       lapNumber: r.lapNumber,
+      role,
       paceMinKm: r.paceMinPerKm,
       speedMps: speed,
       avgHr: r.avgHr,
@@ -130,11 +134,15 @@ export function computeCoreMetrics(
   });
 
   const effFirst = repMetrics[0]?.efficiency ?? 0;
-  const effLast = repMetrics[repMetrics.length - 1]?.efficiency ?? 0;
+  const lastControlledMetric =
+    repMetrics.find((m) => m.role === "controlled" && m.index === n - 1) ??
+    repMetrics[repMetrics.length - 1];
+  const effLastControlled = lastControlledMetric?.efficiency ?? effFirst;
   const efficiencyDeltaPct =
-    effFirst > 0 ? ((effLast - effFirst) / effFirst) * 100 : 0;
+    effFirst > 0 ? ((effLastControlled - effFirst) / effFirst) * 100 : 0;
 
-  const subThreshold = workReps.filter((r) => r.maxHr < lthr).length;
+  const subThreshold = controlled.filter((r) => r.maxHr < lthr).length;
+  const controlledHrs = controlled.map((r) => r.avgHr);
   const recoveryTimes = workReps
     .map((r) => r.recoverySecondsBefore)
     .filter((s): s is number => s != null);
@@ -143,6 +151,12 @@ export function computeCoreMetrics(
       ? recoveryTimes.reduce((a, b) => a + b, 0) / recoveryTimes.length
       : 0;
 
+  const controlledMisses = repMetrics
+    .filter((m) => m.role === "controlled")
+    .map((m) => m.paceMiss);
+
+  const finishAnalysis = analyzeFinishRep(workReps, lthr);
+
   return {
     paceDriftPct,
     hrDriftBpm,
@@ -150,18 +164,19 @@ export function computeCoreMetrics(
     decouplingIndex,
     paceCvPct,
     efficiencyFirst: effFirst,
-    efficiencyLast: effLast,
+    efficiencyLast: effLastControlled,
     efficiencyDeltaPct,
     subThresholdRepShare:
-      workReps.length > 0 ? subThreshold / workReps.length : 0,
+      controlled.length > 0 ? subThreshold / controlled.length : 0,
     avgIntensityPctLthr:
-      lthr > 0
-        ? (hrs.reduce((a, b) => a + b, 0) / (hrs.length || 1) / lthr) * 100
+      lthr > 0 && controlledHrs.length > 0
+        ? (controlledHrs.reduce((a, b) => a + b, 0) / controlledHrs.length / lthr) *
+          100
         : 0,
-    maxConsecutivePaceMiss: maxConsecutiveMiss(
-      repMetrics.map((m) => m.paceMiss),
-    ),
+    maxConsecutivePaceMiss: maxConsecutiveMiss(controlledMisses),
     avgRecoverySec,
+    finishRepIndex: finish?.index ?? null,
+    finish: finishAnalysis,
     repMetrics,
   };
 }

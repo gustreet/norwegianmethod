@@ -1,6 +1,8 @@
+import type { FinishRepAnalysis } from "./baseline";
+import { controlledRepCount } from "./baseline";
 import type { SessionCoreMetrics } from "./core-metrics";
 import { methodFitScore, rule, verdictFromRules } from "./rules";
-import { COPELAND } from "./thresholds";
+import { BASELINE, COPELAND } from "./thresholds";
 import type { MethodScorecard } from "./types";
 
 type CopelandInput = {
@@ -12,12 +14,16 @@ type CopelandInput = {
   firstWorkHr: number;
   lthr: number;
   core: SessionCoreMetrics;
+  finish: FinishRepAnalysis;
 };
 
 export function scoreCopeland(input: CopelandInput): MethodScorecard {
   const rules = [];
+  const controlled = controlledRepCount(input.workRepCount);
+
   const m: Record<string, number> = {
     copeland_work_rep_count: input.workRepCount,
+    copeland_controlled_rep_count: controlled,
     copeland_reps_over_lthr: input.repsOverLthr,
     copeland_pace_drift_pct: input.paceDriftPct,
     copeland_hr_drift_bpm: input.core.hrDriftBpm,
@@ -26,6 +32,8 @@ export function scoreCopeland(input: CopelandInput): MethodScorecard {
     copeland_avg_recovery_sec: input.avgRecoverySec,
     copeland_efficiency_delta_pct: input.core.efficiencyDeltaPct,
     copeland_avg_intensity_pct_lthr: input.core.avgIntensityPctLthr,
+    copeland_finish_hr_pct_peak: input.finish.avgHrPctOfPeak,
+    copeland_finish_in_band: input.finish.inAllOutBand ? 1 : 0,
   };
 
   if (input.repsOverLthr >= COPELAND.lthrCrossFailCount) {
@@ -40,8 +48,8 @@ export function scoreCopeland(input: CopelandInput): MethodScorecard {
       ),
     );
   } else if (
-    input.workRepCount > 0 &&
-    input.repsOverLthr / input.workRepCount >= COPELAND.lthrCrossWarnShare
+    controlled > 0 &&
+    input.repsOverLthr / controlled >= COPELAND.lthrCrossWarnShare
   ) {
     rules.push(
       rule(
@@ -49,7 +57,7 @@ export function scoreCopeland(input: CopelandInput): MethodScorecard {
         "warn",
         "copeland_reps_over_lthr",
         input.repsOverLthr,
-        Math.ceil(input.workRepCount * COPELAND.lthrCrossWarnShare),
+        Math.ceil(controlled * COPELAND.lthrCrossWarnShare),
         "gte",
       ),
     );
@@ -89,7 +97,7 @@ export function scoreCopeland(input: CopelandInput): MethodScorecard {
       ),
     );
   } else if (
-    input.workRepCount >= COPELAND.paceDriftFlagMinReps &&
+    controlled >= COPELAND.paceDriftFlagMinReps &&
     input.paceDriftPct > COPELAND.paceDriftFlagPct
   ) {
     rules.push(
@@ -161,6 +169,34 @@ export function scoreCopeland(input: CopelandInput): MethodScorecard {
         "gt",
       ),
     );
+  }
+
+  if (input.finish.present && input.workRepCount >= 4) {
+    const low = BASELINE.finishRepAllOutHrLow * 100;
+    const high = BASELINE.finishRepAllOutHrHigh * 100;
+    if (input.finish.tooSoft) {
+      rules.push(
+        rule(
+          "COPE_FINISH_SOFT",
+          "warn",
+          "copeland_finish_hr_pct_peak",
+          input.finish.avgHrPctOfPeak,
+          low,
+          "lt",
+        ),
+      );
+    } else if (input.finish.tooHot) {
+      rules.push(
+        rule(
+          "COPE_FINISH_HOT",
+          "warn",
+          "copeland_finish_hr_pct_peak",
+          input.finish.avgHrPctOfPeak,
+          high,
+          "gt",
+        ),
+      );
+    }
   }
 
   m.copeland_method_fit_score = methodFitScore(rules);

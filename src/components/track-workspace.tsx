@@ -289,10 +289,21 @@ export function TrackWorkspace() {
                     {(analysis.progress.subThresholdShare * 100).toFixed(0)}%
                   </dd>
                 </div>
-                <div className="flex justify-between gap-4">
+                <div className="flex justify-between gap-4 border-b border-line pb-3">
                   <dt className="text-muted">LTHR ceiling</dt>
                   <dd className="font-bold tabular-nums text-red">{lthr} bpm</dd>
                 </div>
+                {analysis.core.finish.present ? (
+                  <div className="flex justify-between gap-4">
+                    <dt className="text-muted">Finish effort</dt>
+                    <dd className="font-bold tabular-nums text-ink">
+                      {analysis.core.finish.avgHrPctOfPeak.toFixed(0)}% peak
+                      <span className="ml-1 text-xs font-normal text-muted">
+                        (90–95)
+                      </span>
+                    </dd>
+                  </div>
+                ) : null}
               </dl>
             </div>
           )}
@@ -315,7 +326,9 @@ function RepTable({ analysis, lthr }: { analysis: SessionAnalysis; lthr: number 
     <section className="rounded-2xl border border-line bg-surface shadow-sm">
       <div className="border-b border-line bg-slate-50 px-4 py-4 sm:px-5">
         <h2 className="text-lg font-bold text-ink">Work reps</h2>
-        <p className="text-xs text-muted">Max HR ≥ LTHR highlighted</p>
+        <p className="text-xs text-muted">
+          Controlled reps: LTHR crossings count. Last rep = modeled 90–95% HR finish.
+        </p>
       </div>
       <div className="max-h-[min(70vh,520px)] overflow-auto">
         <table className="min-w-full border-collapse text-left text-sm">
@@ -331,16 +344,30 @@ function RepTable({ analysis, lthr }: { analysis: SessionAnalysis; lthr: number 
           </thead>
           <tbody>
             {analysis.workReps.map((rep, row) => {
-              const hot = rep.maxHr >= lthr;
               const rm = analysis.core.repMetrics.find((m) => m.index === rep.index);
+              const isFinish = rm?.role === "finish";
+              const hot = !isFinish && rep.maxHr >= lthr;
               return (
                 <tr
                   key={rep.lapNumber}
                   className={`border-t border-line ${
-                    hot ? "bg-red/8" : row % 2 === 0 ? "bg-white" : "bg-slate-50/80"
+                    isFinish
+                      ? "bg-navy/6"
+                      : hot
+                        ? "bg-red/8"
+                        : row % 2 === 0
+                          ? "bg-white"
+                          : "bg-slate-50/80"
                   }`}
                 >
-                  <td className="px-4 py-2.5 font-mono text-ink">{rep.index}</td>
+                  <td className="px-4 py-2.5 font-mono text-ink">
+                    {rep.index}
+                    {isFinish ? (
+                      <span className="ml-2 rounded bg-navy/10 px-1.5 py-0.5 text-[10px] font-sans font-semibold text-navy">
+                        Finish
+                      </span>
+                    ) : null}
+                  </td>
                   <td className="px-4 py-2.5 font-mono">{formatDuration(rep.seconds)}</td>
                   <td className="px-4 py-2.5 font-mono">{formatPace(rep.paceMinPerKm)}</td>
                   <td className="px-4 py-2.5 font-mono">{rep.avgHr}</td>
