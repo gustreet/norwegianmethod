@@ -10,6 +10,7 @@ type Props = {
   points: TrackPoint[];
   center?: { lat: number; lng: number };
   highlight?: "pace" | "hr";
+  lthr?: number;
 };
 
 function FitBounds({ points }: { points: TrackPoint[] }) {
@@ -38,7 +39,16 @@ function paceColor(speedMps: number | null): string {
   return "#64748b";
 }
 
-export function TrackMap({ points, center, highlight = "pace" }: Props) {
+function hrColor(hr: number | null, lthr: number): string {
+  if (hr == null) return "#94a3b8";
+  const ratio = hr / lthr;
+  if (ratio >= 1) return "#BA0C2F";
+  if (ratio >= 0.95) return "#c9a227";
+  if (ratio >= 0.88) return "#00205B";
+  return "#1e5a8a";
+}
+
+export function TrackMap({ points, center, highlight = "pace", lthr = 172 }: Props) {
   const c = center ?? HOME_TRACK;
   const latlngs = points.map((p) => [p.lat, p.lng] as [number, number]);
 
@@ -74,9 +84,26 @@ export function TrackMap({ points, center, highlight = "pace" }: Props) {
               />
             );
           })
-        : (
+        : null}
+      {highlight === "hr" && points.length > 1
+        ? points.slice(1).map((p, i) => {
+            const prev = points[i];
+            return (
+              <Polyline
+                key={`hr-${p.time}-${i}`}
+                positions={[[prev.lat, prev.lng], [p.lat, p.lng]]}
+                pathOptions={{
+                  color: hrColor(p.hr ?? prev.hr, lthr),
+                  weight: 5,
+                  opacity: 0.85,
+                }}
+              />
+            );
+          })
+        : null}
+      {points.length > 1 && highlight !== "pace" && highlight !== "hr" ? (
           <Polyline positions={latlngs} pathOptions={{ color: "#00205B", weight: 4 }} />
-        )}
+        ) : null}
       <CircleMarker
         center={[points[0].lat, points[0].lng]}
         radius={6}

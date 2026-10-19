@@ -13,6 +13,8 @@ import type {
   SessionVerdict,
   TrackPoint,
 } from "@/lib/types";
+import { CoreMetricsPanel } from "./core-metrics-panel";
+import { EffortSpeedChart } from "./effort-speed-chart";
 import { TrackMapLazy } from "./track-map-lazy";
 
 type SlotState = {
@@ -58,6 +60,7 @@ export function TrackWorkspace() {
   const [lthr, setLthr] = useState(172);
   const [error, setError] = useState<string | null>(null);
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
+  const [mapOverlay, setMapOverlay] = useState<"pace" | "hr">("pace");
 
   const activeTrack = trackBySlug(activeSlug) ?? TRACKS[0];
   const slot = slots[activeSlug] ?? emptySlot();
@@ -189,8 +192,29 @@ export function TrackWorkspace() {
             </h1>
             <p className="mt-1 text-sm text-[var(--muted)]">{activeTrack.city}</p>
           </div>
+          <div className="flex flex-wrap gap-2">
+            {(["pace", "hr"] as const).map((mode) => (
+              <button
+                key={mode}
+                type="button"
+                onClick={() => setMapOverlay(mode)}
+                className={`rounded-lg px-3 py-1.5 text-xs font-medium ${
+                  mapOverlay === mode
+                    ? "bg-[var(--navy)] text-white"
+                    : "bg-white text-[var(--navy)] ring-1 ring-[var(--line)]"
+                }`}
+              >
+                Map: {mode === "pace" ? "speed" : "effort (HR)"}
+              </button>
+            ))}
+          </div>
           <div className="min-h-[360px] flex-1 overflow-hidden rounded-2xl border border-[var(--line)] shadow-sm">
-            <TrackMapLazy points={slot.trackpoints} center={mapCenter} />
+            <TrackMapLazy
+              points={slot.trackpoints}
+              center={mapCenter}
+              highlight={mapOverlay}
+              lthr={lthr}
+            />
           </div>
           <p className="text-xs text-[var(--muted)]">
             {slot.trackpoints.length === 0
@@ -256,6 +280,12 @@ export function TrackWorkspace() {
                 <span className={`rounded-full px-3 py-1 text-sm font-medium ${style.badge}`}>
                   {style.label}
                 </span>
+                <span className="rounded-full bg-[var(--navy)]/10 px-3 py-1 font-mono text-xs text-[var(--navy)]">
+                  Copeland {analysis.progress.copelandFit}
+                </span>
+                <span className="rounded-full bg-[var(--red)]/10 px-3 py-1 font-mono text-xs text-[var(--red)]">
+                  Bakken {analysis.progress.bakkenFit}
+                </span>
                 <span className="font-mono text-sm text-[var(--muted)]">
                   {analysis.workReps.length} reps · {analysis.qualityMinutes.toFixed(0)} quality min
                 </span>
@@ -264,17 +294,27 @@ export function TrackWorkspace() {
               <p className="mt-2 text-sm leading-relaxed text-[var(--muted)]">
                 {analysis.verdictDetail}
               </p>
-              {analysis.bakkenNote ? (
-                <p className="mt-4 rounded-lg border-l-4 border-[var(--red)] bg-white/80 py-2 pl-3 text-sm text-[var(--ink)]">
-                  {analysis.bakkenNote}
-                </p>
+              {analysis.flags.length > 0 ? (
+                <ul className="mt-4 space-y-1.5 text-sm text-[var(--ink)]">
+                  {analysis.flags.map((f) => (
+                    <li key={f} className="rounded-lg bg-white/80 px-3 py-2 ring-1 ring-[var(--line)]">
+                      {f}
+                    </li>
+                  ))}
+                </ul>
               ) : null}
             </article>
           )}
         </div>
       </section>
 
-      {slot.laps.length > 0 ? <RepTable analysis={analysis} lthr={lthr} /> : null}
+      {slot.laps.length > 0 ? (
+        <>
+          <CoreMetricsPanel analysis={analysis} />
+          <EffortSpeedChart core={analysis.core} />
+          <RepTable analysis={analysis} lthr={lthr} />
+        </>
+      ) : null}
     </div>
   );
 }
@@ -292,11 +332,13 @@ function RepTable({ analysis, lthr }: { analysis: SessionAnalysis; lthr: number 
               <th className="px-4 py-3 font-medium">Pace</th>
               <th className="px-4 py-3 font-medium">Avg HR</th>
               <th className="px-4 py-3 font-medium">Max HR</th>
+              <th className="px-4 py-3 font-medium">Decouple</th>
             </tr>
           </thead>
           <tbody>
             {analysis.workReps.map((rep) => {
               const hot = rep.maxHr >= lthr;
+              const rm = analysis.core.repMetrics.find((m) => m.index === rep.index);
               return (
                 <tr
                   key={rep.lapNumber}
@@ -307,6 +349,9 @@ function RepTable({ analysis, lthr }: { analysis: SessionAnalysis; lthr: number 
                   <td className="px-4 py-3 font-mono">{formatPace(rep.paceMinPerKm)}</td>
                   <td className="px-4 py-3 font-mono">{rep.avgHr}</td>
                   <td className="px-4 py-3 font-mono">{rep.maxHr}</td>
+                  <td className="px-4 py-3 font-mono text-[var(--muted)]">
+                    {rm ? `${rm.decouplingRep >= 0 ? "+" : ""}${rm.decouplingRep.toFixed(1)}%` : "—"}
+                  </td>
                 </tr>
               );
             })}
