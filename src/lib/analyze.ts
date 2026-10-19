@@ -14,7 +14,8 @@ function computePaceMinPerKm(seconds: number, meters: number): number | null {
 function classifyLap(lap: Lap): ClassifiedLap {
   const paceMinPerKm = computePaceMinPerKm(lap.seconds, lap.meters);
   let kind: ClassifiedLap["kind"] = "other";
-  if (lap.meters >= 300 && lap.seconds >= 60) kind = "work";
+  if (lap.meters >= 350) kind = "work";
+  else if (lap.meters >= 300 && lap.seconds >= 60) kind = "work";
   else if (lap.meters < 120 && lap.seconds <= 45) kind = "recovery";
   return { ...lap, kind, paceMinPerKm };
 }
@@ -128,6 +129,13 @@ export function analyzeSession(
       : "Your rep HR and fade align with Garmin’s VO2 label more than with a sub-threshold single.",
   ];
 
+  const bakkenNote =
+    workReps.length >= 8 && workReps.length <= 25
+      ? verdict === "on-method"
+        ? "Bakken lens: 400 m repeats with even splits and HR below LTHR match evening threshold work (~3 mmol/L intent)—not a rep-1 time trial."
+        : "Bakken lens: fade or HR above LTHR suggests lactate ran high; next time hold rep 1 conservative and stop if two reps miss the band."
+      : "Bakken lens: classic Norwegian block is 20–25 × 400 m at controlled threshold; Copeland singles use longer 3–12 min reps—this file is track-interval shaped.";
+
   return {
     title: "Track singles review",
     startedAt,
@@ -148,5 +156,6 @@ export function analyzeSession(
     verdictDetail,
     flags,
     garminContrast,
+    bakkenNote,
   };
 }

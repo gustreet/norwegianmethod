@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { AppShell } from "@/components/app-shell";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -13,9 +14,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Norwegian Singles Review",
+  title: "Singles Track — Norwegian method on your oval",
   description:
-    "Score Garmin track workouts against Norwegian Singles sub-threshold rules.",
+    "OpenStreetMap view of your track, TCX analysis for Norwegian Singles and Bakken-style 400s, Neon session history.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -24,7 +25,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col bg-[var(--bg)]">
+        <AppShell>{children}</AppShell>
+      </body>
     </html>
   );
 }

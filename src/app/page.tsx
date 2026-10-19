@@ -1,5 +1,5 @@
-import { SessionReviewSample } from "@/components/session-review";
+import { TrackWorkspace } from "@/components/track-workspace";
 
 export default function Home() {
-  return <SessionReviewSample />;
+  return <TrackWorkspace />;
 }

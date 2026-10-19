@@ -1,4 +1,4 @@
-import type { Lap } from "./types";
+import type { Lap, TrackPoint } from "./types";
 
 const TCX = "http://www.garmin.com/xmlschemas/TrainingCenterDatabase/v2";
 const TPX = "http://www.garmin.com/xmlschemas/ActivityExtension/v2";
@@ -8,14 +8,7 @@ function childText(parent: Element, ns: string, local: string): string {
   return el?.textContent?.trim() ?? "";
 }
 
-export function parseTcx(xml: string): { startedAt: string | null; laps: Lap[] } {
-  const doc = new DOMParser().parseFromString(xml, "application/xml");
-  const activity = doc.getElementsByTagNameNS(TCX, "Activity")[0];
-  if (!activity) {
-    throw new Error("No Activity found in this TCX file.");
-  }
-
-  const startedAt = childText(activity, TCX, "Id") || null;
+function parseLaps(activity: Element): Lap[] {
   const lapEls = activity.getElementsByTagNameNS(TCX, "Lap");
   const laps: Lap[] = [];
 
@@ -57,5 +50,58 @@ export function parseTcx(xml: string): { startedAt: string | null; laps: Lap[] }
     });
   }
 
-  return { startedAt, laps };
+  return laps;
+}
+
+function parseTrackpoints(activity: Element, maxPoints = 800): TrackPoint[] {
+  const tpEls = activity.getElementsByTagNameNS(TCX, "Trackpoint");
+  const raw: TrackPoint[] = [];
+
+  for (let i = 0; i < tpEls.length; i++) {
+    const tp = tpEls[i];
+    const pos = tp.getElementsByTagNameNS(TCX, "Position")[0];
+    if (!pos) continue;
+    const lat = parseFloat(childText(pos, TCX, "LatitudeDegrees"));
+    const lng = parseFloat(childText(pos, TCX, "LongitudeDegrees"));
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
+
+    const time = childText(tp, TCX, "Time");
+    const hrEl = tp.getElementsByTagNameNS(TCX, "HeartRateBpm")[0];
+    const hrRaw = hrEl ? childText(hrEl, TCX, "Value") : "";
+    const tpx = tp.getElementsByTagNameNS(TPX, "TPX")[0];
+    const speedRaw = tpx ? childText(tpx, TPX, "Speed") : "";
+
+    raw.push({
+      lat,
+      lng,
+      time,
+      hr: hrRaw ? parseInt(hrRaw, 10) : null,
+      speedMps: speedRaw ? parseFloat(speedRaw) : null,
+    });
+  }
+
+  if (raw.length <= maxPoints) return raw;
+  const step = Math.ceil(raw.length / maxPoints);
+  return raw.filter((_, i) => i % step === 0);
+}
+
+export type ParsedTcx = {
+  startedAt: string | null;
+  laps: Lap[];
+  trackpoints: TrackPoint[];
+};
+
+export function parseTcx(xml: string): ParsedTcx {
+  const doc = new DOMParser().parseFromString(xml, "application/xml");
+  const activity = doc.getElementsByTagNameNS(TCX, "Activity")[0];
+  if (!activity) {
+    throw new Error("No Activity found in this TCX file.");
+  }
+
+  const startedAt = childText(activity, TCX, "Id") || null;
+  return {
+    startedAt,
+    laps: parseLaps(activity),
+    trackpoints: parseTrackpoints(activity),
+  };
 }

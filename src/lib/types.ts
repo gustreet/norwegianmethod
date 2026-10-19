@@ -9,6 +9,14 @@ export type Lap = {
   watts: number | null;
 };
 
+export type TrackPoint = {
+  lat: number;
+  lng: number;
+  time: string;
+  hr: number | null;
+  speedMps: number | null;
+};
+
 export type RepKind = "work" | "recovery" | "other";
 
 export type ClassifiedLap = Lap & {
@@ -52,4 +60,14 @@ export type SessionAnalysis = {
   verdictDetail: string;
   flags: string[];
   garminContrast: string[];
+  bakkenNote?: string;
+};
+
+export type HomeTrack = {
+  slug: string;
+  name: string;
+  city: string;
+  lat: number;
+  lng: number;
+  lapMeters: number;
 };
