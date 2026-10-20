@@ -1,6 +1,6 @@
 ---
-name: Norwegian Method
-description: Deterministic Norwegian-method track analysis — OSM, dual ovals, effort vs speed
+name: Singles Track
+description: Rule-coded Norwegian method review on Sha Tin and Kai Tak ovals
 colors:
   primary: "#00205B"
   accent: "#BA0C2F"
@@ -62,55 +62,86 @@ components:
     backgroundColor: "{colors.accent}"
 ---
 
+# Design System: Singles Track
+
 ## Overview
 
-Product UI for post-track review: **navy app shell** (red hairline under header), venue tabs, toolbar (LTHR, map mode, TCX upload). Main grid = **OSM map** (pace or HR polyline) + **SessionSummary** (verdict badge, headline, dual **FitBar**, six core metrics, collapsible rule flags). Below: effort-vs-speed chart, **sticky rep table** (slate thead). Tailwind v4 `@theme` tokens (`navy`, `red`, `ink`, `muted`, `line`, `surface`). Geist Sans + Mono. Cool slate page bg `#F1F5F9` (not warm cream). Surfaces use border + spacing; avoid stacked shadows and nested cards.
+**Creative North Star: "Method Lab Notebook"**
+
+A post-session lab sheet: verdict and rule flags up front, mono numerics for every rep, navy/red only where they encode method state—not decoration. Copy reads like labeled fields in a notebook (rule codes visible), not a fitness brand campaign.
+
+**Key characteristics:** cool slate canvas (`#F1F5F9`); flat bordered panels; Geist Sans labels + Geist Mono data; Sha Tin / Kai Tak as parallel tabs; WCAG AA contrast on ink/muted.
 
 ## Colors
 
-| Role | Token / class | Use |
-|------|----------------|-----|
-| Primary | `#00205B` · `navy` | Header, active tab, table header, primary buttons, speed bars |
-| Accent | `#BA0C2F` · `red` | Venue kicker, hot reps, Bakken fit, HR map/bars |
-| Background | `#F1F5F9` · `bg` | Page canvas |
-| Surface | `#FFFFFF` · `surface` | Cards, map frame, inputs |
-| Ink | `#0F172A` · `ink` | Body, headings |
-| Muted | `#475569` · `muted` | Secondary copy (AA on white) |
-| Line | `#E2E8F0` · `line` | Borders, fit-bar track |
+### Primary
 
-Verdict surfaces: tinted full border + light fill (navy / amber / red)—no side-stripe accents.
+- **Norwegian Navy** (`#00205B`): header, active venue tab, Copeland fit bar, primary buttons, table header, speed map baseline.
 
-Map: pace = navy→red by speed; HR = blue→amber→red vs LTHR.
+### Secondary
+
+- **Track Red** (`#BA0C2F`): header mark, header rule, Bakken fit bar, HR emphasis, hot rep rows.
+
+### Neutral
+
+- **Cool Slate Canvas** (`#F1F5F9`): page background.
+- **Surface** (`#FFFFFF`): panels, map frame, inputs.
+- **Ink** (`#0F172A`): headings and body.
+- **Muted** (`#475569`): secondary labels (AA on white).
+- **Line** (`#E2E8F0`): borders, fit-bar track.
+
+**The No-Cream Rule.** Warm paper/beige page backgrounds are out; cool slate only.
+
+Verdict chips: full soft tint (navy / amber / red)—no side-stripe accents.
 
 ## Typography
 
-- **Geist Sans**: titles, body, controls; `text-balance` on page h1.
-- **Geist Mono**: lap times, pace, HR, decoupling, fit scores.
-- Section titles `text-base font-semibold`; avoid fluid display type.
+**UI:** Geist Sans — titles, controls, verdict headlines (`text-balance` on page h1).
 
-## Elevation
+**Data:** Geist Mono — lap times, pace, HR, decoupling, fit scores (`tabular-nums`).
 
-Light `shadow-sm` on map and panels only; flat data table inside bordered shell. No nested cards inside verdict panel (flags are simple bordered rows).
+**The Code-Visible Rule.** Flag and Method copy should surface rule identifiers users can cross-check in `src/lib/method/`.
+
+Fixed rem scale; no fluid display headings.
+
+## Layout
+
+- **App shell:** `max-w-7xl` centered content; navy header + footer attribution.
+- **Track workspace:** venue `tablist`; large screens — map + SessionSummary side-by-side; below — effort/speed chart + wide rep table.
+- **Density:** data-forward; tables may run wide; Method prose capped ~75ch.
+- **Z-index:** `--z-sticky: 10` for sticky table header; map panes stay low.
+
+## Elevation & Depth
+
+Flat-by-default. Separation via `border-line` and white `surface` on slate `bg`. `shadow-sm` only on map frame and primary panels.
+
+**No nested cards** inside SessionSummary—flags are divided rows, not stacked cards.
+
+## Shapes
+
+- **Radius:** 8px controls (`rounded-lg`); 12px summary panel (`rounded-xl`); pills `rounded-full` for verdict chips and fit-bar caps.
+- **Header rule:** 2px red bar under navy header (not a gradient).
 
 ## Components
 
-- **AppShell + AppNav**: navy header, stripe gradient, active nav pill.
-- **Track workspace**: venue tabs (`role="tablist"`, active = navy fill); map overlay toggle; **SessionSummary** beside map on large screens.
-- **SessionSummary**: verdict pill + headline; Copeland/Bakken **FitBar**; 6-metric `dl`; `<details>` for rule flags (flat divided list).
-- **EffortSpeedChart**: dual bar overlay per rep, rep index labels ≤24 reps.
-- **Rep table**: `sticky` slate thead, finish row tint, red row when max HR ≥ LTHR on controlled reps.
-- **FitBar**: 8px track, navy or red fill, `role="progressbar"`.
+- **AppShell / AppNav:** navy header; nav pills `bg-white/15` when active.
+- **Venue tabs:** active = navy fill; inactive = bordered on surface.
+- **SessionSummary:** verdict pill + headline; dual FitBar; metric `dl`; `<details>` for rule flags.
+- **FitBar:** 8px track, navy or red fill; `role="progressbar"`; width transition respects reduced motion.
+- **Rep table:** sticky thead; mono numerics; row tint when HR exceeds LTHR on controlled reps.
+- **Map:** bordered Leaflet frame; pace navy→red; HR blue→amber→red vs LTHR.
 
 ## Do's and Don'ts
 
-**Do**
+### Do
 
-- Use theme classes (`text-ink`, `border-line`, `bg-navy`) over raw `var()` in utilities.
-- Keep metrics copy tied to rule names users see in flags.
-- Preserve separate tab state per oval.
+- **Do** use theme classes (`text-ink`, `border-line`, `bg-navy`, `bg-red`).
+- **Do** label UI with rule-backed terminology.
+- **Do** keep Sha Tin and Kai Tak sessions isolated per tab.
 
-**Don't**
+### Don't
 
-- Mix activities or reintroduce freeform “coach” LLM text.
-- Left border accent stripes, gradient text, hero metric templates.
-- Uppercase eyebrows on every section.
+- **Don't** fabricate testimonials, benchmarks, or social proof in UI or marketing.
+- **Don't** present Garmin VO2max / execution score as the primary story.
+- **Don't** use hero-metric templates, gradient text, or uppercase section eyebrows.
+- **Don't** use left-border accent stripes on callouts.

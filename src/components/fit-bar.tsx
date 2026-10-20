@@ -42,8 +42,8 @@ export function FitBar({
           aria-label={`${label} ${v} out of 100`}
         >
           <div
-            className={`fit-bar-fill h-full rounded-full ${fill}`}
-            style={{ width: `${v}%` }}
+            className={`fit-bar-fill h-full w-full origin-left rounded-full ${fill}`}
+            style={{ transform: `scaleX(${v / 100})` }}
           />
         </div>
         <span

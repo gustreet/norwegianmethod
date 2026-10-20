@@ -92,13 +92,13 @@ export function EffortSpeedChart({ core }: { core: SessionCoreMetrics }) {
                 {r.paceMiss ? (
                   <rect
                     x={x - 2}
-                    y={padY}
+                    y={baseline - Math.max(sh, eh) - 4}
                     width={barW + 4}
-                    height={innerH * 0.55}
-                    fill="none"
+                    height={Math.max(sh, eh) + 8}
+                    fill="rgb(186 12 47 / 0.06)"
                     stroke="#ba0c2f"
-                    strokeWidth={1.5}
-                    strokeDasharray="4 3"
+                    strokeWidth={1}
+                    strokeDasharray="3 2"
                     rx={3}
                   />
                 ) : null}

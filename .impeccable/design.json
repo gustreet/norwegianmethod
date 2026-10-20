@@ -1,0 +1,112 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-20T04:20:00.000Z",
+  "title": "Design System: Singles Track",
+  "extensions": {
+    "colorMeta": {
+      "primary": {
+        "role": "primary",
+        "displayName": "Norwegian Navy",
+        "canonical": "oklch(0.28 0.09 264)",
+        "tonalRamp": [
+          "oklch(0.15 0.06 264)",
+          "oklch(0.22 0.08 264)",
+          "oklch(0.28 0.09 264)",
+          "oklch(0.35 0.08 264)",
+          "oklch(0.45 0.07 264)",
+          "oklch(0.58 0.05 264)",
+          "oklch(0.72 0.03 264)",
+          "oklch(0.88 0.01 264)"
+        ]
+      },
+      "accent": {
+        "role": "secondary",
+        "displayName": "Track Red",
+        "canonical": "oklch(0.48 0.19 20)",
+        "tonalRamp": [
+          "oklch(0.28 0.14 20)",
+          "oklch(0.38 0.17 20)",
+          "oklch(0.48 0.19 20)",
+          "oklch(0.55 0.17 20)",
+          "oklch(0.65 0.14 20)",
+          "oklch(0.75 0.10 20)",
+          "oklch(0.85 0.06 20)",
+          "oklch(0.93 0.03 20)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "label": {
+        "displayName": "Data mono",
+        "purpose": "Rule-linked metrics; tabular figures."
+      }
+    },
+    "motion": [
+      {
+        "name": "ease-fit-bar",
+        "value": "cubic-bezier(0.22, 1, 0.36, 1)",
+        "purpose": "FitBar width; off when prefers-reduced-motion."
+      }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "lg", "value": "1024px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Upload / save actions on Track.",
+      "html": "<button type=\"button\" class=\"ds-btn-primary\">Upload TCX</button>",
+      "css": ".ds-btn-primary { background: #00205b; color: #fff; padding: 8px 16px; font-family: system-ui, sans-serif; font-size: 0.875rem; font-weight: 600; border: none; border-radius: 8px; cursor: pointer; } .ds-btn-primary:focus-visible { outline: 2px solid #00205b; outline-offset: 2px; }"
+    },
+    {
+      "name": "Verdict Pill",
+      "kind": "chip",
+      "description": "On-method / borderline / too-hard badge.",
+      "html": "<span class=\"ds-verdict\">On method</span>",
+      "css": ".ds-verdict { display: inline-block; padding: 4px 12px; font-size: 0.875rem; font-weight: 600; border-radius: 9999px; background: rgb(0 32 91 / 0.1); color: #00205b; }"
+    },
+    {
+      "name": "Fit Bar",
+      "kind": "custom",
+      "refersTo": "fit-bar-fill-navy",
+      "description": "Copeland/Bakken 0–100 scores.",
+      "html": "<div class=\"ds-fit\"><div class=\"ds-fit__track\" role=\"progressbar\" aria-valuenow=\"72\" aria-valuemin=\"0\" aria-valuemax=\"100\"><div class=\"ds-fit__fill\" style=\"width:72%\"></div></div><span class=\"ds-fit__value\">72/100</span></div>",
+      "css": ".ds-fit { display: flex; align-items: center; gap: 8px; } .ds-fit__track { flex: 1; height: 8px; background: #e2e8f0; border-radius: 9999px; overflow: hidden; } .ds-fit__fill { height: 100%; background: #00205b; border-radius: 9999px; } .ds-fit__value { font-family: ui-monospace, monospace; font-size: 0.875rem; font-weight: 600; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "Method Lab Notebook",
+    "overview": "Post-session lab sheet: verdict and rule flags first, mono numerics for every rep, navy/red only for method state.",
+    "keyCharacteristics": [
+      "Cool slate canvas",
+      "Rule-coded copy",
+      "Flat bordered panels",
+      "Mono for all rep metrics"
+    ],
+    "rules": [
+      {
+        "name": "The No-Cream Rule",
+        "body": "Page background stays cool slate; no warm paper neutrals.",
+        "section": "colors"
+      },
+      {
+        "name": "The Code-Visible Rule",
+        "body": "Surface rule identifiers users can verify in src/lib/method/.",
+        "section": "typography"
+      }
+    ],
+    "dos": [
+      "Do use theme tokens and rule-backed labels.",
+      "Do keep Sha Tin and Kai Tak isolated per tab."
+    ],
+    "donts": [
+      "Don't fabricate testimonials or benchmarks.",
+      "Don't use Garmin VO2max as the primary story.",
+      "Don't use hero metrics or gradient text."
+    ]
+  }
+}
