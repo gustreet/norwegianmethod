@@ -18,13 +18,20 @@ if ! command -v gh >/dev/null 2>&1; then
 fi
 
 if gh repo view "${OWNER}/${REPO}" >/dev/null 2>&1; then
-  echo "setup-github-remote: ${OWNER}/${REPO} already exists"
+  echo "setup-github-remote: ${OWNER}/${REPO} exists"
 else
-  gh repo create "${REPO}" --public --description "Norwegian Singles / Bakken track TCX analysis"
+  if ! gh repo create "${REPO}" --public --description "Norwegian Singles / Bakken track TCX analysis" 2>/dev/null; then
+    echo "setup-github-remote: cannot create repo (PAT needs Administration or classic repo scope)."
+    echo "setup-github-remote: create empty https://github.com/new?name=${REPO} then re-run install or push."
+    exit 0
+  fi
 fi
 
 git remote remove github 2>/dev/null || true
 git remote add github "https://x-access-token:${TOKEN}@github.com/${OWNER}/${REPO}.git"
-git push -u github HEAD:main || git push -u github main
-
-echo "setup-github-remote: pushed to https://github.com/${OWNER}/${REPO}"
+if git push -u github HEAD:main 2>/dev/null || git push -u github main; then
+  echo "setup-github-remote: pushed to https://github.com/${OWNER}/${REPO}"
+else
+  echo "setup-github-remote: push failed (repo missing or token lacks contents write)"
+  exit 0
+fi
