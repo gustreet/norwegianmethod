@@ -21,6 +21,7 @@
 /build
 
 # misc
+*.bundle
 .DS_Store
 *.pem
 
