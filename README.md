@@ -2,6 +2,10 @@
 
 **Singles Track** is a track-first Next.js app for your 400 m oval: **OpenStreetMap** GPS from Garmin TCX, **Norwegian Singles** (Copeland) scoring, and **Marius Bakken** notes on controlled 400s. Session summaries persist on **Neon** Postgres.
 
+## GitHub MCP
+
+If the agent gets **403** creating repos, the GitHub integration is read-only. Follow **[docs/GITHUB-MCP.md](docs/GITHUB-MCP.md)** to set `GITHUB_PERSONAL_ACCESS_TOKEN` (PAT with **repo** or fine-grained **Contents** + **Administration**), then restart the agent.
+
 ## GitHub
 
 Create the repo (if it does not exist yet), then push this project:
