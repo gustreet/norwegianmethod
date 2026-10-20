@@ -27,8 +27,16 @@ else
   fi
 fi
 
+if ! bash "$(dirname "$0")/../scripts/verify-github-pat.sh" 2>/dev/null; then
+  bash "$(dirname "$0")/../scripts/verify-github-pat.sh" || true
+  echo "setup-github-remote: fix PAT (see above), then: git push -u github main"
+  git remote remove github 2>/dev/null || true
+  git remote add github "https://github.com/${OWNER}/${REPO}.git"
+  exit 0
+fi
+
 git remote remove github 2>/dev/null || true
-git remote add github "https://x-access-token:${TOKEN}@github.com/${OWNER}/${REPO}.git"
+git remote add github "https://github.com/${OWNER}/${REPO}.git"
 if git push -u github HEAD:main 2>/dev/null || git push -u github main; then
   echo "setup-github-remote: pushed to https://github.com/${OWNER}/${REPO}"
 else

@@ -47,6 +47,30 @@ git push -u github main
 
 ## Still failing?
 
+Run on the agent VM:
+
+```bash
+bash scripts/verify-github-pat.sh
+```
+
+If you see `Resource not accessible by personal access token`, the PAT is **not** allowed to write **Contents**—even when `gh api repos/.../norwegianmethod` shows `permissions.push: true`. That object describes repo ACLs, not your token’s granted scopes.
+
 - Disconnect **Integrations → GitHub** OAuth if it conflicts with the plugin PAT; prefer the plugin + secret above.
 - Fine-grained tokens without **Administration** can push to an existing repo but cannot **create** one—create `norwegianmethod` on GitHub first, or add Administration.
-- **403 on push after creating a new repo:** fine-grained PATs only see repos selected at token creation. Open the token at [github.com/settings/tokens](https://github.com/settings/tokens) → **Repository access** → add **norwegianmethod** (or “All repositories”) → **Contents: Read and write** → save, then update Cursor secrets and retry push.
+- **403 on push after creating a new repo:** fine-grained PATs only see repos selected at token creation. Open the token at [github.com/settings/tokens](https://github.com/settings/tokens) → **Repository access** → add **norwegianmethod** (or “All repositories”) → **Contents: Read and write** → save, then update Cursor secrets and **start a new agent run**.
+- **Fastest token fix:** create a **classic** PAT with scope **`repo` only**, paste into plugin + `GITHUB_PERSONAL_ACCESS_TOKEN`, new run, then `git push -u github main`.
+
+### Publish without fixing the agent token
+
+```bash
+bash scripts/export-git-bundle.sh
+```
+
+Download `norwegianmethod-main.bundle` from the workspace (or clone from Cursor’s `origin` remote), then on your laptop:
+
+```bash
+git clone norwegianmethod-main.bundle norwegianmethod
+cd norwegianmethod
+git remote add github https://github.com/gustreet/norwegianmethod.git
+git push -u github main
+```
