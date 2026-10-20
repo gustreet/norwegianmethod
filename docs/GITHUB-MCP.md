@@ -49,3 +49,4 @@ git push -u github main
 
 - Disconnect **Integrations → GitHub** OAuth if it conflicts with the plugin PAT; prefer the plugin + secret above.
 - Fine-grained tokens without **Administration** can push to an existing repo but cannot **create** one—create `norwegianmethod` on GitHub first, or add Administration.
+- **403 on push after creating a new repo:** fine-grained PATs only see repos selected at token creation. Open the token at [github.com/settings/tokens](https://github.com/settings/tokens) → **Repository access** → add **norwegianmethod** (or “All repositories”) → **Contents: Read and write** → save, then update Cursor secrets and retry push.
