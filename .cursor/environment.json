@@ -1,4 +1,4 @@
 {
-  "install": "npm ci",
+  "install": "npm ci\nbash .cursor/setup-github-remote.sh",
   "start": "bash .cursor/start.sh"
 }

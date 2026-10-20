@@ -13,13 +13,17 @@ Cloud Agents were getting **403** on `create_repository` because the default Git
 
 Copy the token once; you will not see it again.
 
-## 2. Wire it in Cursor
+## 2. Wire it in Cursor (both steps)
 
-**Cloud Agent (this VM)**
+**A — GitHub MCP (required for `create_repository` in chat)**
 
-1. Cursor **Dashboard** → your **Cloud Agent environment** (or agent run) → **Secrets**.
-2. Add secret name exactly: `GITHUB_PERSONAL_ACCESS_TOKEN` = your PAT.
-3. Start a **new** agent run (or restart) so the secret is injected.
+1. **Settings → Plugins → GitHub → Configure**
+2. Paste your PAT into **GitHub personal access token** (this is separate from environment secrets).
+
+**B — Cloud Agent shell / `git push`**
+
+1. Environment or run **Secrets**: name **`GITHUB_PERSONAL_ACCESS_TOKEN`** (or `GH_TOKEN`).
+2. **Save** the environment and start a **new** agent run — secrets do not hot-reload on an already-running VM.
 
 **Desktop / Plugins**
 
