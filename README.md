@@ -1,6 +1,21 @@
-# Singles Track
+# Norwegian Method (`norwegianmethod`)
 
-A **track-first** Next.js app for your 400 m oval: **OpenStreetMap** GPS from Garmin TCX, **Norwegian Singles** (Copeland) scoring, and **Marius Bakken** notes on controlled 400s. Session summaries persist on **Neon** Postgres.
+**Singles Track** is a track-first Next.js app for your 400 m oval: **OpenStreetMap** GPS from Garmin TCX, **Norwegian Singles** (Copeland) scoring, and **Marius Bakken** notes on controlled 400s. Session summaries persist on **Neon** Postgres.
+
+## GitHub
+
+Create the repo (if it does not exist yet), then push this project:
+
+```bash
+gh repo create norwegianmethod --public --source=. --remote=github --push
+```
+
+Or add a remote manually:
+
+```bash
+git remote add github git@github.com:<your-user>/norwegianmethod.git
+git push -u github main
+```
 
 ## Run locally
 

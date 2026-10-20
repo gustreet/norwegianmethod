@@ -1,5 +1,5 @@
 ---
-name: Singles Track
+name: Norwegian Method
 description: Deterministic Norwegian-method track analysis — OSM, dual ovals, effort vs speed
 colors:
   primary: "#00205B"
